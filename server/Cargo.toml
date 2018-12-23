@@ -1,0 +1,7 @@
+[package]
+name    = "paperplane-server"
+version = "0.1.0"
+authors = ["Gregoire Geis <git@gregoirege.is>"]
+
+[dependencies]
+rocket = "0.4.0"
