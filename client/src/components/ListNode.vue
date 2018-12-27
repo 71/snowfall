@@ -1,29 +1,31 @@
 <template lang="pug">
-.item-wrapper(:style='{ "--depth": depth }', :class='{ active: itemActive }')
+.item-wrapper(:style='{ "--depth": depth }', :class='{ active: isActive }')
 
   .item-first-line
     // Menu (shown on right)
     v-menu(offset-y)
       v-btn(slot='activator', flat, icon, small,
-            @mouseover='itemActive = true', @mouseleave='itemActive = false')
+            @mouseover='isActive = true', @mouseleave='isActive = false')
         v-icon(size='12px', color='#444') lens
 
       v-list
-        v-list-tile(v-if='item.children && expanded', @click='expanded = false')
+        v-list-tile(v-if='hasChildren && expanded', @click='expanded = false')
           v-list-tile-title Collapse
-        v-list-tile(v-if='item.children && !expanded', @click='expanded = true')
+        v-list-tile(v-if='hasChildren && !expanded', @click='expanded = true')
           v-list-tile-title Expand
 
-        v-divider(v-if='item.children')
+        v-divider(v-if='hasChildren')
 
         v-list-tile(:to='path')
           v-list-tile-title Zoom in
 
         v-divider
 
-        v-list-tile(@click='')
-          v-list-tile-title Add note
-        v-list-tile(@click='')
+        v-list-tile(@click='insertNewChild')
+          v-list-tile-title Insert child
+        v-list-tile(@click='insertBelow')
+          v-list-tile-title Insert below
+        v-list-tile(@click='removeNode')
           v-list-tile-title Remove
 
     // Editor / render
@@ -32,25 +34,30 @@
       .item-show(ref='displayWrapper', v-if='!hasFocus', v-html='markdown', @click='focus')
 
   // Children (recursive)
-  .item-children(v-if='item.children && expanded')
-    list-node(v-for='child in item.children', :key='child.text',
-              :item='child', :depth='depth + 1', :parent='this')
+  .item-children(v-if='hasChildren && expanded')
+    list-node(v-for='child, index in item.children', :key='child.text',
+              :item='child', :depth='depth + 1', :index='index', :prepath='path', ref='children')
 
 </template>
 
 <script>
-import Vue from 'vue'
-import MarkdownIt from 'markdown-it'
 import CodeMirror from 'codemirror/lib/codemirror'
+import MarkdownIt from 'markdown-it'
+import Vue from 'vue'
+
+import yaml from 'yaml'
 
 import 'codemirror/addon/display/autorefresh'
 import 'codemirror/lib/codemirror.css'
 import 'codemirror/mode/markdown/markdown'
+import { NodeHelpers, Note } from '@/store';
 
 
 const md = new MarkdownIt({
   breaks: true
 })
+
+let activeNode = null
 
 const cmEditor = CodeMirror(document.createElement('div'), {
   mode: 'markdown',
@@ -64,8 +71,35 @@ const cmEditor = CodeMirror(document.createElement('div'), {
   viewportMargin: Infinity,
 
   extraKeys: {
-    Enter (cm) {
+    'Enter' (cm) {
       CodeMirror.signal(cm, 'blur')
+      Vue.nextTick(() => activeNode.insertBelow())
+    },
+
+    'Shift+Tab' (cm) {
+      CodeMirror.signal(cm, 'blur')
+      activeNode.decreaseDepth()
+    },
+
+    'Tab' (cm) {
+      CodeMirror.signal(cm, 'blur')
+      activeNode.increaseDepth()
+    },
+
+    'Up' (cm) {
+      if (cm.getCursor().line != 0)
+        return
+
+      CodeMirror.signal(cm, 'blur')
+      activeNode.focusPrevious()
+    },
+
+    'Down' (cm) {
+      if (cm.getCursor().line != cm.lineCount() - 1)
+        return
+
+      CodeMirror.signal(cm, 'blur')
+      activeNode.focusNext()
     }
   }
 })
@@ -74,9 +108,10 @@ export default {
   name: 'list-node',
 
   props: {
-    item: Object,
-    parent: Object,
-    depth: Number
+    depth: Number,
+    index: Number,
+    item : Object,
+    prepath: String
   },
 
   data () {
@@ -85,13 +120,17 @@ export default {
       markdown: '',
       markdownSource: '',
 
+      path: this.$props.item.computePath(this.$props.prepath),
       text: this.$props.item.text,
-      path: this.$parent.path + '/' + this.$props.item.text,
 
       expanded: true,
       hasFocus: false,
-      itemActive: false
+      isActive: false
     }
+  },
+
+  computed: {
+    hasChildren () { return this.$props.item.children.length > 0 }
   },
 
   watch: {
@@ -154,8 +193,8 @@ export default {
       return fullOffset
     },
 
-    focus (ev) {
-      const offset = this.getOffsetRelativeToContent()
+    focus (ev = 0) {
+      const offset = typeof ev == 'number' ? ev : this.getOffsetRelativeToContent()
 
       this.hasFocus = true
 
@@ -191,7 +230,67 @@ export default {
 
       cmEditor.focus()
 
-      this.focusEditor(offset)
+      if (ev)
+        this.focusEditor(offset)
+      
+      activeNode = this
+    },
+
+    increaseDepth () {
+      this.$store.commit('increaseDepth', { note: this.$props.item })
+    },
+
+    decreaseDepth () {
+      this.$store.commit('decreaseDepth', { note: this.$props.item })
+    },
+
+    insertNewChild () {
+      this.$store.commit('insert', {
+        parent: this.$props.item,
+        index : 0,
+        note  : new Note(this.$props.item, '', [])
+      })
+
+      Vue.nextTick(() => this.$refs.children[0].focus())
+    },
+
+    insertBelow () {
+      const index = this.$props.item.index
+
+      this.$store.commit('insert', {
+        parent: this.$props.item.parent,
+        index : index + 1,
+        note  : new Note(this.$props.item.parent, '', [])
+      })
+
+      Vue.nextTick(() => this.$parent.$refs.children[index + 1].focus())
+    },
+
+    removeNode () {
+      this.$store.commit('remove', { note: this.$props.item })
+    },
+
+    focusPrevious (offset) {
+      const children = this.$parent.$refs.children
+      const index = this.$props.item.index
+
+      if (index > 0)
+        children[index - 1].focus(offset || cmEditor.getCursor().ch)
+      else if (this.$parent.item)
+        this.$parent.focus(offset || cmEditor.getCursor().ch)
+    },
+
+    focusNext (offset) {
+      const children = this.$parent.$refs.children
+      const node  = this.$props.item
+      const index = node.index
+
+      if (children.length > index + 1)
+        children[index + 1].focus(offset || cmEditor.getCursor().ch)
+      else if (node.children.length > 0)
+        this.$refs.children[0].focus(offset || cmEditor.getCursor().ch)
+      else
+        this.$parent.focusNext(offset || cmEditor.getCursor().ch)
     }
   }
 }
@@ -227,6 +326,9 @@ export default {
   display: block
   margin-left: 1.5em
   margin-top: 0em
+
+.item-show::before
+  content: "\200B"
 
 
 .CodeMirror

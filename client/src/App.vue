@@ -1,13 +1,14 @@
 <template lang="pug">
 v-app
   v-toolbar(app, dark, color='primary')
-    v-breadcrumbs(:items='paths')
-      v-icon(slot='divider') forward
+    template(v-if=' $route.name === "home" ')
+      v-breadcrumbs(:items='$store.state.app.path')
+        v-icon(slot='divider') forward
 
-    v-spacer
-    v-spacer
+      v-spacer
+      v-spacer
 
-    v-text-field.mx-3(v-if='inMain', hide-details, single-line, flat, solo-inverted, append-icon='search', clearable)
+      v-text-field.mx-3(v-if='$route.name == "home"', hide-details, single-line, flat, solo-inverted, append-icon='search', clearable)
 
     v-menu(bottom, left)
       v-btn(slot='activator', dark, icon)
@@ -26,51 +27,10 @@ v-app
 
 <script>
 import 'typeface-roboto'
+import { Mutations } from '@/store';
 
 export default {
-  name: 'App',
-
-  methods: {
-    refreshData () {
-      const inMain = this.$route.name === 'home'
-      const paths = [ { text: 'home', to: '/', disabled: false } ]
-
-      let fullPath = ''
-
-      this.$route.path.split('/').forEach(sub => {
-        if (!sub)
-          return
-
-        fullPath += '/' + sub
-
-        paths.push({ text: sub, to: fullPath, disabled: false })
-      })
-
-      if (inMain) {
-        paths[paths.length - 1].disabled = true
-      }
-
-      return {
-        paths,
-        inMain
-      }
-    }
-  },
-
-  data () {
-    return this.refreshData()
-  },
-
-  watch: {
-    '$route.path' () {
-      const data = this.refreshData()
-
-      console.log('mhmm')
-
-      this.paths = data.paths
-      this.inMain = data.inMain
-    }
-  }
+  name: 'App'
 }
 </script>
 
