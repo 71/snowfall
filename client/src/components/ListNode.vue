@@ -50,7 +50,8 @@ import yaml from 'yaml'
 import 'codemirror/addon/display/autorefresh'
 import 'codemirror/lib/codemirror.css'
 import 'codemirror/mode/markdown/markdown'
-import { NodeHelpers, Note } from '@/store';
+
+import { NodeHelpers, Note } from '@/store'
 
 
 const md = new MarkdownIt({
@@ -58,6 +59,7 @@ const md = new MarkdownIt({
 })
 
 let activeNode = null
+let init = null
 
 const cmEditor = CodeMirror(document.createElement('div'), {
   mode: 'markdown',
@@ -76,33 +78,71 @@ const cmEditor = CodeMirror(document.createElement('div'), {
       Vue.nextTick(() => activeNode.insertBelow())
     },
 
-    'Shift+Tab' (cm) {
+    'Shift-Tab' (cm) {
+      if (activeNode.depth == 0)
+        return
+
       CodeMirror.signal(cm, 'blur')
-      activeNode.decreaseDepth()
+      Vue.nextTick(() => activeNode.decreaseDepth())
+
+      init = function () { this.focus(0) }
     },
 
     'Tab' (cm) {
       CodeMirror.signal(cm, 'blur')
-      activeNode.increaseDepth()
+      Vue.nextTick(() => activeNode.increaseDepth())
+
+      init = function () { this.focus(0) }
     },
 
     'Up' (cm) {
       if (cm.getCursor().line != 0)
         return
 
+      const action = activeNode.focusPrevious()
+
+      if (!action)
+        return
+
       CodeMirror.signal(cm, 'blur')
-      activeNode.focusPrevious()
+      action()
     },
 
     'Down' (cm) {
       if (cm.getCursor().line != cm.lineCount() - 1)
         return
+      
+      const action = activeNode.focusNext()
+
+      if (!action)
+        return
 
       CodeMirror.signal(cm, 'blur')
-      activeNode.focusNext()
+      action()
     }
   }
 })
+
+function getChildListNode(children, index) {
+  // Try sibling at index first
+  let child = children[index]
+
+  if (child.index == index)
+    return child
+  
+  // Sibling was added dynamically later on, try the naive way.
+  //
+  // Note that we start the lookup at the end, since nodes
+  // are pushed to the end when they're added
+  for (let i = children.length - 1; i >= 0; i--) {
+    child = children[i]
+
+    if (child.index == index)
+      return child
+  }
+
+  return null
+}
 
 export default {
   name: 'list-node',
@@ -130,7 +170,8 @@ export default {
   },
 
   computed: {
-    hasChildren () { return this.$props.item.children.length > 0 }
+    hasChildren () { return this.$props.item.children.length > 0 },
+    siblings () { return this.$parent.$refs.children }
   },
 
   watch: {
@@ -153,6 +194,14 @@ export default {
   },
 
   methods: {
+    getSibling (index) {
+      return getChildListNode(this.$parent.$refs.children, index)
+    },
+
+    getChild (index) {
+      return getChildListNode(this.$refs.children, index)
+    },
+
     focusEditor (offset) {
       // Goal: find character that corresponds to given offset in source text
       //
@@ -161,6 +210,9 @@ export default {
       //            ^
       //   foo **bar** _baz_
       //                 ^
+      if (this.tokens.length == 0)
+        return
+
       let skipOffset = 0
       let remainingOffset = offset
 
@@ -198,7 +250,9 @@ export default {
 
       this.hasFocus = true
 
-      this.$refs.displayWrapper.style.display = 'none'
+      if (this.$refs.displayWrapper)
+        this.$refs.displayWrapper.style.display = 'none'
+
       this.$refs.editorWrapper.style.display = null
       this.$refs.editorWrapper.appendChild(cmEditor.getWrapperElement())
 
@@ -219,8 +273,8 @@ export default {
 
       const onChange = (() => {
         // Why does this cause a refresh?
-        //if (this.hasFocus)
-        //  this.$props.item.text = cmEditor.getValue()
+        // if (this.hasFocus)
+        //   this.$props.item.text = cmEditor.getValue()
       }).bind(this)
 
       cmEditor.setValue(this.text)
@@ -248,10 +302,10 @@ export default {
       this.$store.commit('insert', {
         parent: this.$props.item,
         index : 0,
-        note  : new Note(this.$props.item, '', [])
+        note  : new Note(this.$props.item, yaml.createNode(''), '')
       })
 
-      Vue.nextTick(() => this.$refs.children[0].focus())
+      this.$nextTick(() => this.getChild(0).focus())
     },
 
     insertBelow () {
@@ -260,10 +314,10 @@ export default {
       this.$store.commit('insert', {
         parent: this.$props.item.parent,
         index : index + 1,
-        note  : new Note(this.$props.item.parent, '', [])
+        note  : new Note(this.$props.item.parent, yaml.createNode(''), '')
       })
 
-      Vue.nextTick(() => this.$parent.$refs.children[index + 1].focus())
+      this.$nextTick(() => this.getSibling(index + 1).focus())
     },
 
     removeNode () {
@@ -271,27 +325,37 @@ export default {
     },
 
     focusPrevious (offset) {
-      const children = this.$parent.$refs.children
       const index = this.$props.item.index
 
       if (index > 0)
-        children[index - 1].focus(offset || cmEditor.getCursor().ch)
+        return () => this.getSibling(index - 1).focus(offset || cmEditor.getCursor().ch)
       else if (this.$parent.item)
-        this.$parent.focus(offset || cmEditor.getCursor().ch)
+        return () => this.$parent.focus(offset || cmEditor.getCursor().ch)
+      else
+        return null
     },
 
     focusNext (offset) {
-      const children = this.$parent.$refs.children
       const node  = this.$props.item
       const index = node.index
 
-      if (children.length > index + 1)
-        children[index + 1].focus(offset || cmEditor.getCursor().ch)
-      else if (node.children.length > 0)
-        this.$refs.children[0].focus(offset || cmEditor.getCursor().ch)
+      if (node.children.length > 0)
+        return () => this.getChild(0).focus(offset || cmEditor.getCursor().ch)
+      else if (this.siblings.length > index + 1)
+        return () => this.getSibling(index + 1).focus(offset || cmEditor.getCursor().ch)
+      else if (this.$parent.depth >= 0)
+        return () => this.$parent.focusNext(offset || cmEditor.getCursor().ch)
       else
-        this.$parent.focusNext(offset || cmEditor.getCursor().ch)
+        return null
     }
+  },
+
+  mounted () {
+    if (!init)
+      return
+    const i = init
+    init = null
+    i.call(this)
   }
 }
 </script>

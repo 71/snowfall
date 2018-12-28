@@ -1,5 +1,5 @@
 <template lang="pug">
-.home
+.home(ref='rootElement')
   list-node(v-for='item, index in root.children', :key='item.text',
             :item='item', :index='index', :depth='0', :prepath='"/"', ref='children')
 </template>
@@ -10,6 +10,10 @@ import ListNode from '@/components/ListNode'
 export default {
   components: {
     ListNode
+  },
+
+  computed: {
+    depth () { return -1 }
   },
 
   data () {

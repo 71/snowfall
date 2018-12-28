@@ -18,6 +18,10 @@ const store = getStore({
   doc: localStorage.getItem('document')
 })
 
+window.addEventListener('unload', () => {
+  store.dispatch('save')
+})
+
 router.beforeResolve((to, _, next) => {
   store.commit(Mutations.UPDATE_ROUTE, to)
 

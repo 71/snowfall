@@ -11,14 +11,7 @@ items:
   - text: baz
 `
 
-function notNull<T extends { range: [number, number] | null }>(value: T | null): T {
-  if (value == null)
-    throw new Error("Value cannot be null.")
-
-  return value
-}
-
-export class NodeHelpers {
+class NodeHelpers {
   static getValue(node: yaml.ast.MapBase, pred: (k: string, v: yaml.ast.Pair | yaml.ast.Merge) => boolean) {
     for (const item of node.items) {
       const key = item.key!!.toJSON()
@@ -39,6 +32,10 @@ export class NodeHelpers {
                                        k => k == 'notes' || k == 'items' || k == 'children')
     return notes as yaml.ast.Seq
   }
+
+  static createPair(key: string, value: any) {
+    return (yaml.createNode({ [key]: value }) as yaml.ast.MapBase).items[0]
+  }
 }
 
 export class Note {
@@ -46,8 +43,9 @@ export class Note {
 
   constructor(
     public parent  : Note,
+    public original: yaml.ast.MapBase | yaml.ast.Scalar,
     public data    : { text: string } | { title: string } | { note: string } | string,
-    public children: Note[]
+    public children: Note[] = []
   ) {
     if (typeof data == 'string')
       this.textKey = null
@@ -83,6 +81,35 @@ export class Note {
     return this.parent == null
   }
 
+  get syntax() {
+    console.log(this.original.type)
+    if (this.original.type == 'MAP')
+      return this.original
+
+    const newNode = yaml.createNode({ text: this.text })
+
+    newNode.comment       = this.original.comment
+    newNode.commentBefore = this.original.commentBefore
+    newNode.tag           = this.original.tag
+
+    this.data = { text: this.text }
+
+    return this.original = newNode as yaml.ast.Map
+  }
+
+  get childrenSyntax() {
+    const syntax = NodeHelpers.getValue(this.syntax, k => k == 'items' || k == 'children' || k == 'notes') as yaml.ast.SeqBase
+
+    if (syntax)
+      return syntax
+
+    // @ts-ignore
+    this.original = yaml.createNode({ children: [], ... this.data })
+    this.original.type = 'MAP'
+
+    return NodeHelpers.getValue(this.original as any, k => k == 'children') as yaml.ast.SeqBase
+  }
+
   indexOf(note: Note): number {
     return this.children.indexOf(note)
   }
@@ -105,19 +132,29 @@ export class Note {
 }
 
 
-function yamlDocToNotes(doc: string): { root: Note; ids: { [key: string]: Note } } {
+function yamlDocToNotes(doc: string): { root: Note; document: yaml.ast.Document; ids: { [key: string]: Note } } {
   const ids  : { [key: string]: Note } = {}
 
-  const document = yaml.parse(doc)
+  const document       = yaml.parseDocument(doc)
+  const rootDocument   = document.contents as yaml.ast.MapBase
+  const parsedDocument = rootDocument.toJSON()
+
   // @ts-ignore
   const root = new Note(null, '', [])
 
-  function collect(parent: Note, items: any, depth: number) {
-    for (const item of items || []) {
+  function collect(parent: Note, items: any[], nodes: yaml.ast.Seq, depth: number) {
+    if (!nodes || nodes.type != "SEQ")
+      return
+
+    for (let i = 0; i < items.length; i++) {
+      const node = nodes.items[i]
+      const item = items[i]
+
       if (typeof item == 'string') {
-        parent.children.push(new Note(parent, item, []))
+        parent.children.push(new Note(parent, <yaml.ast.Scalar>node, item))
       } else if (typeof item == 'object') {
-        const note = new Note(parent, item, []) 
+        const map = <yaml.ast.MapBase>node
+        const note = new Note(parent, map, item) 
 
         parent.children.push(note)
 
@@ -126,18 +163,29 @@ function yamlDocToNotes(doc: string): { root: Note; ids: { [key: string]: Note }
         else if (typeof item.id == 'number')
           ids[item.id.toString()] = note
 
-        collect(note, item.notes || item.items || item.children, depth + 1)
+        if (item.notes)
+          collect(note, item.notes,
+                  NodeHelpers.getValue(map, k => k == 'notes') as yaml.ast.Seq, depth + 1)
+        else if (item.items)
+          collect(note, item.items,
+                  NodeHelpers.getValue(map, k => k == 'items') as yaml.ast.Seq, depth + 1)
+        else if (item.children)
+          collect(note, item.children,
+                  NodeHelpers.getValue(map, k => k == 'children') as yaml.ast.Seq, depth + 1)
       } else {
         throw new Error('Invalid YAML document.')
       }
     }
   }
 
-  collect(root, document.notes || document.items, 0)
+  collect(
+    root,
+    parsedDocument.notes || parsedDocument.items,
+    NodeHelpers.getValue(rootDocument, k => k == 'notes' || k == 'items') as yaml.ast.Seq,
+    0)
 
   return {
-    root,
-    ids
+    root, document, ids
   }
 }
 
@@ -153,8 +201,8 @@ export default ({ doc }: { doc: string | null }) => new Vuex.Store({
       // true for path that is not in home; false for invalid path
       path: <{ text: string; to: string }[] | boolean>true
     },
-    doc: doc || DEFAULTRAW,
-    ...yamlDocToNotes(doc || DEFAULTRAW)
+    raw: doc || DEFAULTRAW,
+    ...yamlDocToNotes(DEFAULTRAW)
   },
 
   mutations: {
@@ -267,8 +315,8 @@ export default ({ doc }: { doc: string | null }) => new Vuex.Store({
   },
 
   actions: {
-    save (context) {
-
+    save ({ state }) {
+      localStorage.setItem('document', state.document.toString())
     }
   }
 })
