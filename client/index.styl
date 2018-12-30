@@ -1,0 +1,149 @@
+$background = white
+
+
+body
+  background: $background
+  position: absolute
+  margin: 0
+  height: 100%
+  width: 100%
+  text-align: center
+
+*
+  box-sizing: border-box
+
+
+header
+  --mdc-theme-on-primary: #5f6368
+
+  background-color: $background!important
+  border-bottom: 1px solid #dadce0
+
+  & > div
+    display: inline-block
+  
+  .mdc-text-field
+    width: 100%
+  
+  .disabled
+    --mdc-theme-on-primary: #dadce0
+    pointer-events: none
+
+#app
+  display: inline-block
+  padding: 0 1em
+  height: 100%
+  width: 100%
+  text-align: left
+
+  max-width: 800px
+
+  padding-top: 5em
+
+  .settings-root
+    .mdc-card
+      padding: 1em
+      margin-top: 1em
+
+    .card-header
+      margin-bottom: 1em
+      position: relative
+
+      .mdc-switch
+        position: absolute
+        margin-top: .5em
+        right: 0
+
+.tree-root > div > .node-wrapper:first-child
+  & > .node-children
+    border-left: none
+    padding-left: 0
+    margin-left: 0
+
+
+// Node
+
+.node-wrapper
+  position: relative
+  border-radius: .3em
+  transition: all .1s ease-in-out
+
+  // Node
+
+  &.active
+    background: #eee
+    
+  &.focused > .node-content-line > .node-content
+    & > .node-display
+      display: none
+
+    & > .node-edit
+      display: inherit
+  
+  .node-edit
+    display: none
+  
+  .node-content-line
+    display: flex
+
+  .node-content
+    display: inline-block
+    flex-grow: 100
+    margin-top: .5em
+  
+
+  // Bullet
+  $inner-diameter = 9px
+
+  .node-bullet
+    $diameter = $inner-diameter * 3
+
+    width: $diameter
+    height: $diameter
+    border-radius: $diameter
+    background: transparent
+    margin: .3em
+
+    &:hover
+      background: #ddd
+
+  .node-inner-bullet
+    $diameter = $inner-diameter
+  
+    width: $diameter
+    height: $diameter
+    border-radius: $diameter
+    background: #aaa
+
+    margin: $inner-diameter
+
+
+  // Children
+
+  .node-children
+    border-left: solid #eee 1px
+    display: block
+    margin-left: 1em
+    margin-top: 0
+    padding-left: 1.4em
+
+
+  // Render
+
+  .node-display::before
+    content: "\200B"
+
+
+  // Editor
+
+  .node-content, .CodeMirror
+    font-family: Roboto, sans-serif
+    font-size: 18px
+    color: #111
+
+  .CodeMirror
+    background: transparent
+    height: auto
+
+  .CodeMirror-lines, .CodeMirror pre
+    padding: 0
