@@ -1,13 +1,15 @@
 import { LocalStorageFileSystem, YamlStore } from '../shared/yaml'
 
 import 'material-icons/iconfont/material-icons.css'
+import 'typeface-b612'
+import 'typeface-sarabun'
 
-import { h, render, options } from 'preact'
+import { h, render } from 'preact'
 import { Router }    from 'preact-router'
 
 import Editor, { createEditorObserver }  from './components/editor'
 import Header                            from './components/header'
-import Settings, { Settings as Options } from './components/settings'
+import Settings, { Settings as Options, settings } from './components/settings'
 import Tree, { Tree as DomObserver }     from './components/tree'
 
 
@@ -25,22 +27,24 @@ notes:
 `;
 
 
-
 (async function() {
   // Set up storage...
   const observers = []
+
+  if (settings.cachePlainText)
+    observers.push(new (await import('./helpers/plainTextCacher')).default())
+
   const store = new YamlStore(new LocalStorageFileSystem(), observers)
 
   // Set up view...
   const appElement = document.querySelector('#app')
   const headerElement = document.querySelector('#header')
 
-  // Clean up HTML from previous sessions
+  // Clean up HTML from previous sessions...
   appElement.innerHTML = ''
   headerElement.innerHTML = ''
 
   const tree = new DomObserver()
-  const options = new Options()
 
   let header: Header
 

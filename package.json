@@ -7,7 +7,7 @@
   "license": "MIT",
   "private": false,
   "scripts": {
-    "dev": "parcel client/index.pug --no-cache",
+    "dev": "parcel client/index.pug",
     "dev-client": "parcel client/index.pug",
     "dev-server": "parcel server/index.ts",
     "build": "parcel build client/index.pug server/index.ts"
@@ -17,32 +17,25 @@
     "@babel/plugin-transform-react-jsx": "^7.2.0",
     "@babel/plugin-transform-runtime": "^7.2.0",
     "@babel/preset-env": "^7.2.3",
-    "@material/card": "^0.42.0",
-    "@material/dialog": "^0.42.0",
-    "@material/icon-button": "^0.42.0",
-    "@material/menu": "^0.42.1",
-    "@material/ripple": "^0.42.0",
-    "@material/textfield": "^0.42.1",
     "@types/codemirror": "^0.0.71",
     "@types/markdown-it": "^0.0.7",
-    "@types/navigo": "^7.0.1",
     "@types/yaml": "^1.0.1",
     "babel-plugin-transform-react-jsx": "^6.24.1",
     "babel-plugin-transform-runtime": "^6.23.0",
     "babel-preset-env": "^1.7.0",
     "codemirror": "^5.42.2",
+    "fuzzysearch": "^1.0.3",
     "markdown-it": "^8.4.2",
-    "navigo": "^7.1.2",
+    "material-icons": "^0.3.0",
     "parcel-bundler": "^1.11.0",
     "preact": "^8.4.2",
     "preact-material-components": "^1.5.5",
     "preact-router": "^2.6.1",
     "pug": "^2.0.3",
     "stylus": "^0.54.5",
+    "typeface-b612": "^0.0.69",
+    "typeface-sarabun": "^0.0.71",
     "typescript": "^3.2.2",
     "yaml": "^1.1.0"
-  },
-  "dependencies": {
-    "material-icons": "^0.3.0"
   }
 }

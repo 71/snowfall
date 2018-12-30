@@ -1,12 +1,13 @@
 import { Node, NodeObserver } from '../../shared'
 
-import CodeMirror, { Pass } from 'codemirror/lib/codemirror'
+import CodeMirror, { Pass } from 'codemirror'
 import MarkdownIt           from 'markdown-it'
 import { h, Component }     from 'preact'
 
 import 'codemirror/addon/display/autorefresh'
 import 'codemirror/lib/codemirror.css'
 import 'codemirror/mode/markdown/markdown'
+import { start } from 'repl';
 
 
 // Markdown renderer
@@ -177,6 +178,22 @@ export type HtmlNodeState = {
 }
 
 
+let selectingMultiple = false
+let lastSelected      = null
+
+document.addEventListener('mouseup', () => {
+  if (!selectingMultiple)
+    return
+
+  selectingMultiple = false
+  lastSelected      = null
+
+  document.addEventListener('mouseup', () => {
+    for (const element of document.querySelectorAll('.selected'))
+      element.classList.remove('selected')
+  }, { once: true })
+})
+
 // Tree
 export class Tree implements NodeObserver<HtmlNodeState> {
   public cm: CodeMirror.Editor
@@ -210,7 +227,8 @@ export class Tree implements NodeObserver<HtmlNodeState> {
       const env = {}
 
       node.tokens = md.parseInline(node.text, env)
-      node.markdown = md.renderer.render(node.tokens, null, env)
+      // @ts-ignore
+      node.markdown = md.renderer.render(node.tokens, md.options, env)
       node.markdownSource = node.text
     }
 
@@ -263,6 +281,43 @@ export class Tree implements NodeObserver<HtmlNodeState> {
       this.focus(node, ev)
     })
 
+    // If the user starts selecting the node, then moves to other nodes, we start
+    // a multi-node selection
+    let selecting = false
+    let previouslySelected = null
+
+    node.displayElement.addEventListener('mouseleave', () => {
+      if (!selecting)
+        return
+
+      selectingMultiple = true
+      selecting = false
+
+      node.wrapperElement.classList.add('selected')
+    })
+
+    node.displayElement.addEventListener('mouseenter', () => {
+      if (!selectingMultiple)
+        return
+
+      node.wrapperElement.classList.add('selected')
+
+      if (previouslySelected != null && previouslySelected != lastSelected)
+        lastSelected.classList.remove('selected')
+
+      previouslySelected = lastSelected
+      lastSelected = node.wrapperElement
+    })
+
+    node.displayElement.addEventListener('mousedown', () => {
+      selecting = true
+    })
+
+    document.addEventListener('mouseup', ev => {
+      selecting = false
+      previouslySelected = null
+    })
+
     node.bulletElement.addEventListener('mouseenter', () => node.wrapperElement.classList.add('active'))
     node.bulletElement.addEventListener('mouseleave', () => node.wrapperElement.classList.remove('active'))
 
@@ -284,7 +339,7 @@ export class Tree implements NodeObserver<HtmlNodeState> {
 
 
   focus(node: Node<HtmlNodeState>, ev: MouseEvent | number | null) {
-    function focusEditor(offset: number) {
+    function focusEditor(offset: number, endOffset: number = 0) {
       // Goal: find character that corresponds to given offset in source text
       //
       // For instance, the first line should return the second line:
@@ -295,10 +350,12 @@ export class Tree implements NodeObserver<HtmlNodeState> {
       if (node.tokens.length == 0)
         return
 
+      const tokens = node.tokens[0].children
+
       let skipOffset = 0
       let remainingOffset = offset
 
-      for (const token of node.tokens[0].children) {
+      for (const token of tokens) {
         skipOffset += token.markup.length
         remainingOffset -= token.content.length
 
@@ -307,15 +364,29 @@ export class Tree implements NodeObserver<HtmlNodeState> {
       }
 
       const doc = cm.getDoc()
-  
-      doc.setCursor(doc.posFromIndex(skipOffset + offset))
+      const startOffset = skipOffset + offset
+
+      if (endOffset > offset) {
+        let skipEndOffset = 0
+        let remainingEndOffset = endOffset
+
+        for (const token of tokens) {
+          skipEndOffset += token.markup.length
+          remainingEndOffset -= token.content.length
+
+          if (remainingEndOffset < 0)
+            break
+        }
+
+        doc.setSelection(doc.posFromIndex(startOffset), doc.posFromIndex(skipEndOffset + endOffset))
+      } else {
+        doc.setCursor(doc.posFromIndex(startOffset))
+      }
     }
 
-    function getOffsetRelativeToContent() {
+    function getOffsetRelativeToContent(focusNode: Element, focusOffset: number): number {
       // Find all nodes before the focused node, and add their length
       // to the full offset
-      const { focusNode, focusOffset } = window.getSelection()
-
       let fullOffset = focusOffset
       let parent = node.displayElement
 
@@ -329,7 +400,10 @@ export class Tree implements NodeObserver<HtmlNodeState> {
       return fullOffset
     }
 
-    const offset = typeof ev == 'number' ? ev : getOffsetRelativeToContent()
+    const { anchorNode, anchorOffset, extentNode, extentOffset, isCollapsed } = window.getSelection()
+    const startOffset = typeof ev == 'number' ? ev : getOffsetRelativeToContent(anchorNode as Element, anchorOffset)
+    const endOffset   = typeof ev == 'number' || isCollapsed ? -1 : getOffsetRelativeToContent(extentNode as Element, extentOffset)
+
     const cm = this.cm
 
     node.hasFocus = true
@@ -340,9 +414,15 @@ export class Tree implements NodeObserver<HtmlNodeState> {
     cm.setValue(node.text)
     cm.focus()
 
-    if (ev)
-      focusEditor(offset)
-    
+    if (ev) {
+      if (endOffset == -1)
+        focusEditor(startOffset)
+      else if (startOffset > endOffset)
+        focusEditor(endOffset, startOffset)
+      else
+        focusEditor(startOffset, endOffset)
+    }
+
     this.activeNode = node
   }
 

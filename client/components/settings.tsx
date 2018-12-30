@@ -19,23 +19,49 @@ export class Settings {
     public autosaveInterval = 0,
 
     public backgroundColor = '#fff',
-    public foregroundColor = '#000'
+    public foregroundColor = '#000',
+
+    public useFuzzySearch = false,
+    public cachePlainText = false,
+
+    public quickNavigationShorcut = 'Shift-Space',
+
+    public useVimMode = false,
+
+    public historySize = 100
   ) {}
+
+  static load() {
+    const json = localStorage.getItem('settings')
+
+    if (json == null)
+      return new Settings()
+
+    return Object.assign(new Settings(), JSON.parse(json)) as Settings
+  }
+
+  save() {
+    localStorage.setItem('settings', JSON.stringify(this))
+  }
 }
+
+export const settings = Settings.load()
+export const appSettings = settings
 
 export default class SettingsComponent extends Component<{}, Settings> {
   componentWillMount() {
-    const settings = JSON.parse(localStorage.getItem('settings') || '{}')
-
-    this.setState(Object.assign(new Settings(), settings))
+    this.setState(settings)
   }
 
   componentWillUnmount() {
-    localStorage.setItem('settings', JSON.stringify(this.state))
+    Object.assign(settings, this.state)
+
+    settings.save()
   }
 
   shouldComponentUpdate(nextProps, nextState: Settings) {
-    if (nextState.autosaveInterval != this.state.autosaveInterval)
+    if (nextState.autosaveInterval != this.state.autosaveInterval ||
+        nextState.historySize      != this.state.historySize)
       // Do not re-render for an interval change
       return false
     
@@ -49,7 +75,7 @@ export default class SettingsComponent extends Component<{}, Settings> {
           <div class='card-header'>
             <Typography headline6>Autosave</Typography>
   
-            <Switch label='Autosave' style='text-align: right'
+            <Switch class='right-switch'
                     checked={this.state.autosave}
                     onChange={e => this.setState({ autosave: (e.target as HTMLInputElement).checked })} />
           </div>
@@ -77,6 +103,67 @@ export default class SettingsComponent extends Component<{}, Settings> {
                        onChange={e => this.setState({ foregroundColor: (e.target as HTMLInputElement).value })} />
           </div>
         </Card>
+
+        <Card>
+          <div class='card-header'>
+            <Typography headline6>Searching</Typography>
+          </div>
+
+          <div class='card-header' style='width: 500px'>
+            <Typography subtitle1>Use fuzzy-searching</Typography>
+            <Switch class='right-switch'
+                    checked={this.state.useFuzzySearch}
+                    onChange={e => this.setState({ useFuzzySearch: (e.target as HTMLInputElement).checked })} />
+          </div>
+
+          <div class='card-header' style='width: 500px'>
+            <Typography subtitle1>Cache plain text</Typography>
+
+            <Switch class='right-switch'
+                    checked={this.state.cachePlainText}
+                    onChange={e => this.setState({ cachePlainText: (e.target as HTMLInputElement).checked })} />
+            <br />
+          </div>
+          <Typography style='margin-top: -.5em; opacity: .9' subtitle2>Consumes more memory, but improves search speed</Typography>
+        </Card>
+
+        <Card>
+          <div class='card-header'>
+            <Typography headline6>Quick navigation</Typography>
+          </div>
+
+          <TextField outlined type='text' label='Keyboard shortcut'
+                     value={this.state.quickNavigationShorcut}
+                     onChange={e => this.setState({ quickNavigationShorcut: (e.target as HTMLInputElement).value })} />
+        </Card>
+
+        <Card>
+          <div class='card-header'>
+            <Typography headline6>Vim mode</Typography>
+          </div>
+
+          <div class='card-header' style='width: 300px'>
+            <Typography subtitle1>Enable Vim mode</Typography>
+            <Switch class='right-switch'
+                    checked={this.state.useVimMode}
+                    onChange={e => this.setState({ useVimMode: (e.target as HTMLInputElement).checked })} />
+          </div>
+        </Card>
+
+        <Card>
+          <div class='card-header'>
+            <Typography headline6>History</Typography>
+          </div>
+
+          <Typography subtitle1>History size</Typography>
+          <div style='padding: 0 .2em'>
+            <Slider discrete step={1} min={1} max={999}
+                    value={this.state.historySize}
+                    onChange={e => this.setState({ historySize: (e as any).detail.value })} />
+          </div>
+        </Card>
+
+        <div style='height: 1em' />
       </div>
     )
   }

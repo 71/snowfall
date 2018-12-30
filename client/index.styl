@@ -1,5 +1,21 @@
 $background = white
 
+mobile()
+  @media screen and (max-width: 720px)
+    {block}
+
+desktop()
+  @media screen and (min-width: 720px)
+    {block}
+
++desktop()
+  .mobile
+    display: none!important
+
+.desktop
+  +mobile()
+    display: none!important
+
 
 body
   background: $background
@@ -8,9 +24,14 @@ body
   height: 100%
   width: 100%
   text-align: center
+  overflow-x: hidden
 
 *
   box-sizing: border-box
+
+a, a:visited
+  text-decoration: inherit
+  color: inherit
 
 
 header
@@ -22,12 +43,28 @@ header
   & > div
     display: inline-block
   
-  .mdc-text-field
-    width: 100%
-  
-  .disabled
-    --mdc-theme-on-primary: #dadce0
+  .disabled, [disabled]
+    opacity: .3
     pointer-events: none
+  
+  section.mdc-top-app-bar__section
+    flex: 0 0 auto
+  
+  section.mdc-top-app-bar__section.search-input
+    padding: 0
+    flex: 1 1 auto
+    justify-content: center
+
+    .mdc-text-field
+      width: 100%
+      max-width: 600px
+
+      @media (max-width: 1050px)
+        display: none
+
+  .search-button
+    @media (min-width: 1050px)
+      display: none
 
 #app
   display: inline-block
@@ -49,10 +86,18 @@ header
       margin-bottom: 1em
       position: relative
 
-      .mdc-switch
-        position: absolute
-        margin-top: .5em
-        right: 0
+    .mdc-switch.right-switch
+      position: absolute
+      margin-top: .5em
+      right: 0
+  
+  .editor-root
+    .CodeMirror
+      font-family: B612, monospace
+      font-size: 1em
+
+      +mobile()
+        font-size: .6em
 
 .tree-root > div > .node-wrapper:first-child
   & > .node-children
@@ -67,11 +112,20 @@ header
   position: relative
   border-radius: .3em
   transition: all .1s ease-in-out
+  margin-bottom: -0.3em
 
   // Node
 
   &.active
     background: #eee
+  
+  &.selected
+    background: red
+  
+  &.no-match
+    display: none
+  &.partial-match > .node-content-line
+    opacity: .6
     
   &.focused > .node-content-line > .node-content
     & > .node-display
@@ -93,6 +147,7 @@ header
   
 
   // Bullet
+
   $inner-diameter = 9px
 
   .node-bullet
@@ -102,7 +157,8 @@ header
     height: $diameter
     border-radius: $diameter
     background: transparent
-    margin: .3em
+    margin: .5em .3em
+    cursor: pointer
 
     &:hover
       background: #ddd
@@ -123,9 +179,9 @@ header
   .node-children
     border-left: solid #eee 1px
     display: block
-    margin-left: 1em
+    margin-left: 1.05em
     margin-top: 0
-    padding-left: 1.4em
+    padding-left: 1em
 
 
   // Render
@@ -133,13 +189,13 @@ header
   .node-display::before
     content: "\200B"
 
-
-  // Editor
-
   .node-content, .CodeMirror
-    font-family: Roboto, sans-serif
+    font-family: Sarabun, sans-serif
     font-size: 18px
     color: #111
+
+
+  // Editor
 
   .CodeMirror
     background: transparent
