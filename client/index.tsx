@@ -1,7 +1,7 @@
 import { LocalStorageFileSystem, YamlStore } from '../shared/yaml'
 
 import 'material-icons/iconfont/material-icons.css'
-import 'typeface-b612'
+import 'typeface-roboto-mono'
 import 'typeface-sarabun'
 
 import { h, render } from 'preact'
