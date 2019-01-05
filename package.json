@@ -10,7 +10,7 @@
     "dev": "parcel client/index.pug --no-cache",
     "dev-client": "parcel client/index.pug",
     "dev-server": "parcel server/index.ts",
-    "build-client": "rimraf dist && parcel build client/index.pug && cp dist/index.html dist/404.html"
+    "build-client": "parcel build client/index.pug --public-url /paperplane/ --out-file 404.html"
   },
   "devDependencies": {
     "@babel/core": "^7.2.2",
