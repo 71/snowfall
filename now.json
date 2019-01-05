@@ -1,16 +1,12 @@
 {
   "version": 2,
+  "alias": [
+    "paperplane"
+  ],
   "builds": [
     {
       "src": "package.json",
       "use": "@now/static-build"
-    }
-  ],
-  "routes": [
-    {
-      "src": "*",
-      "dest": "/index.html",
-      "status": 200
     }
   ]
 }
