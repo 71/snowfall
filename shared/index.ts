@@ -320,7 +320,7 @@ export interface Store<T> extends NodeObserver<T> {
 /**
  * A queue that saves all of its changes in an array, in the order in which they
  * are performed.
- * 
+ *
  * This store can be used to send changes to another instance of Paperplane for
  * synchronization purposes.
  */
@@ -336,7 +336,7 @@ export class ChangeQueue implements NodeObserver<{}> {
   inserted(node: Node<{}>): void | Promise<void> {
     this.pushChange('inserted', node.id)
   }
-  
+
   removed(node: Node<{}>, oldParent: Node<{}>, oldIndex: number): void | Promise<void> {
     this.pushChange('removed', node.id, oldParent.id, oldIndex)
   }

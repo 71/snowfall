@@ -66,8 +66,8 @@ if (navigator.serviceWorker) {
   if (!localStorage.getItem('index.yaml'))
     // @ts-ignore
     localStorage.setItem('index.yaml', require('fs').readFileSync(__dirname + '/common/default.yaml', 'utf8'))
-  
+
   observers.push(tree, createEditorObserver('index.yaml', store))
-  
+
   await store.load('index.yaml')
 })()

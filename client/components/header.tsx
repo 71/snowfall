@@ -197,7 +197,7 @@ export default class HeaderComponent extends Component<{ store: YamlStore }, Hea
               setTimeout(() => fileInput.input_.focus(), 200)
             })
           }>
-            {['index.yaml'].map(filename => 
+            {['index.yaml'].map(filename =>
               <TabBar.Tab active>
                 <TabBar.TabLabel>{filename}</TabBar.TabLabel>
               </TabBar.Tab>
