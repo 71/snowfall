@@ -231,7 +231,7 @@ export interface NodeObserver<T = any> {
 
   /**
    * Updates a property of the given node.
-   * 
+   *
    * If `newValue` is `undefined`, the property is removed.
    */
   propertyUpdated(node: Node<T>, propertyKey: string, newValue: any, oldValue: any): Promise<void> | void

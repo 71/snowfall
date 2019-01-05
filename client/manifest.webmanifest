@@ -1,0 +1,10 @@
+{
+  "name": "Paperplane",
+  "short_name": "Paperplane",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fff",
+  "theme_color": "#aaa",
+  "icons": []
+}

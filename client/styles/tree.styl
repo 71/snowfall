@@ -1,0 +1,118 @@
+@import 'common.styl'
+
+.tree-root > div > .node-wrapper:first-child
+  & > .node-children
+    border-left: none
+    padding-left: 0
+    margin-left: 0
+
+
+.node-wrapper
+  position: relative
+  border-radius: .3em
+  transition: all .1s ease-in-out
+  margin-bottom: -0.3em
+
+  // Node
+
+  &.active
+    background: var(--bg-accent)
+
+  &.selected
+    user-select: none
+
+    & > .node-content-line > .node-bullet
+      background: black
+
+  &.no-match
+    display: none
+  &.partial-match > .node-content-line
+    opacity: .6
+
+  &.focused > .node-content-line > .node-content
+    & > .node-display
+      display: none
+
+    & > .node-edit
+      display: inherit
+
+  .node-edit
+    display: none
+
+  .node-content-line
+    display: flex
+
+  .node-content
+    display: inline-block
+    flex-grow: 100
+    margin-top: .5em
+
+
+  // Bullet
+
+  $inner-diameter = 9px
+
+  .node-bullet
+    $diameter = $inner-diameter * 3
+
+    width: $diameter
+    height: $diameter
+    border-radius: $diameter
+    background: transparent
+    margin: .5em .3em
+    cursor: pointer
+
+    &:hover
+      background: var(--dim-accent)
+
+  .node-inner-bullet
+    $diameter = $inner-diameter
+
+    width: $diameter
+    height: $diameter
+    border-radius: $diameter
+    background: var(--accent)
+
+    margin: $inner-diameter
+
+
+  // Children
+
+  box-sizing: border-box
+
+  .node-children
+    border-left: solid var(--dim-accent) 1px
+    display: block
+    margin-left: 1.05em
+    margin-top: -.5em
+    padding-left: 1em
+
+  padding-bottom: .5em
+
+  &.no-children
+    padding-bottom: 0
+
+    .node-children
+      display: none
+
+
+
+  // Render
+
+  .node-display::before
+    content: "\200B"
+
+  .node-content, .CodeMirror
+    font-family: Sarabun, sans-serif
+    font-size: 18px
+    color: #111
+
+
+  // Editor
+
+  .CodeMirror
+    background: transparent
+    height: auto
+
+  .CodeMirror-lines, .CodeMirror pre
+    padding: 0

@@ -1,5 +1,3 @@
-import { Node, NodeObserver } from '../../shared'
-
 import CodeMirror, { Pass } from 'codemirror'
 import MarkdownIt           from 'markdown-it'
 import { h, Component }     from 'preact'
@@ -7,7 +5,12 @@ import { h, Component }     from 'preact'
 import 'codemirror/addon/display/autorefresh'
 import 'codemirror/lib/codemirror.css'
 import 'codemirror/mode/markdown/markdown'
-import { start } from 'repl';
+
+import { Node, NodeObserver } from '../../shared'
+
+import '../styles/tree.styl'
+
+const opencolor = require('open-color/open-color.json')
 
 
 // Markdown renderer
@@ -82,12 +85,12 @@ const createCodeMirror = (tree: Tree) => CodeMirror(document.createElement('div'
 
       if (doc.getCursor().line != doc.lastLine())
         return Pass
-      
+
       const action = tree.focusNext(tree.activeNode)
 
       if (!action)
         return
-        
+
       CodeMirror.signal(cm, 'blur')
       action()
     },
@@ -95,10 +98,10 @@ const createCodeMirror = (tree: Tree) => CodeMirror(document.createElement('div'
     'Left' (cm) {
       const doc = cm.getDoc()
       const cursor = doc.getCursor()
-  
+
       if (cursor.line != 0 || cursor.ch != 0)
         return Pass
-      
+
       const node = tree.activeNode
       const action = tree.focusPrevious(node, Infinity)
 
@@ -113,7 +116,7 @@ const createCodeMirror = (tree: Tree) => CodeMirror(document.createElement('div'
     'Right' (cm) {
       const doc = cm.getDoc()
       const cursor = doc.getCursor()
-  
+
       if (cursor.line != doc.lastLine() || cursor.ch != doc.getLine(cursor.line).length)
         return Pass
 
@@ -131,13 +134,13 @@ const createCodeMirror = (tree: Tree) => CodeMirror(document.createElement('div'
     'Backspace' (cm) {
       if (cm.getValue().length > 0)
         return Pass
-      
+
       const node = tree.activeNode
       const action = tree.focusPrevious(node, Infinity)
 
       if (!action)
         return Pass
-      
+
       CodeMirror.signal(cm, 'blur')
 
       action()
@@ -191,6 +194,8 @@ document.addEventListener('mouseup', () => {
   document.addEventListener('mouseup', () => {
     for (const element of document.querySelectorAll('.selected'))
       element.classList.remove('selected')
+
+    window.getSelection().collapseToStart()
   }, { once: true })
 })
 
@@ -218,8 +223,12 @@ export class Tree implements NodeObserver<HtmlNodeState> {
   }
 
 
-  private updateChildrenStyle(node: Node<HtmlNodeState>) {
-    node.childrenElement.style.display = node.children.length == 0 ? 'none' : null
+  private updateStyle(node: Node<HtmlNodeState>) {
+    const accent = opencolor[Object.keys(opencolor)[3 + (node.depth % 12)]]
+
+    node.wrapperElement.style.setProperty('--accent'    , accent[6])
+    node.wrapperElement.style.setProperty('--dim-accent', accent[2])
+    node.wrapperElement.style.setProperty('--bg-accent' , accent[0])
   }
 
   private updateMarkdownRender(node: Node<HtmlNodeState>) {
@@ -241,13 +250,15 @@ export class Tree implements NodeObserver<HtmlNodeState> {
     if (!parent)
       return
 
-    const index  = node.index
+    const index = node.index
     const nextSibling = parent.childrenElement.childNodes[index]
 
     parent.childrenElement.insertBefore(node.wrapperElement, nextSibling)
 
-    this.updateChildrenStyle(parent)
+    this.updateStyle(node)
     this.updateMarkdownRender(node)
+
+    parent.wrapperElement.classList.remove('no-children')
   }
 
 
@@ -274,6 +285,9 @@ export class Tree implements NodeObserver<HtmlNodeState> {
         ),
         node.childrenElement = hh('ul', { class: 'node-children' })
       )
+
+    if (node.children.length == 0)
+      node.wrapperElement.classList.add('no-children')
 
     node.displayElement.addEventListener('click', ev => {
       ev.stopImmediatePropagation()
@@ -324,8 +338,11 @@ export class Tree implements NodeObserver<HtmlNodeState> {
     this.reinsert(node)
   }
 
-  removed(node: Node<HtmlNodeState>) {
+  removed(node: Node<HtmlNodeState>, oldParent: Node<HtmlNodeState>) {
     node.wrapperElement.remove()
+
+    if (node.parent.children.length == 0)
+      oldParent.wrapperElement.classList.add('no-children')
   }
 
   propertyUpdated(node: Node<HtmlNodeState>) {
@@ -393,7 +410,7 @@ export class Tree implements NodeObserver<HtmlNodeState> {
       for (const child of parent.childNodes) {
         if (child.contains(focusNode))
           break
-        
+
         fullOffset += child.textContent.length
       }
 
@@ -410,7 +427,7 @@ export class Tree implements NodeObserver<HtmlNodeState> {
 
     node.wrapperElement.classList.add('focused')
     node.editElement.appendChild(cm.getWrapperElement())
-    
+
     cm.setValue(node.text)
     cm.focus()
 
@@ -442,7 +459,7 @@ export class Tree implements NodeObserver<HtmlNodeState> {
     // Focus the last child of the given node
     while (node.children.length > 0)
       node = node.children[node.children.length - 1]
-    
+
     this.focus(node, offset)
   }
 
@@ -459,7 +476,7 @@ export class Tree implements NodeObserver<HtmlNodeState> {
 
   focusNext(node: Node<HtmlNodeState>, offset: number = this.cm.getDoc().getCursor().ch) {
     const index = node.index
-  
+
     if (node.children.length > 0)
       return () => this.focus(node.children[0], offset)
     else if (node.siblings.length > index + 1)

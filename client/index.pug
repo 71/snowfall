@@ -1,15 +1,37 @@
 doctype html
 
-html
+html(lang='en')
   head
     title Paperplane
 
     meta(charset='utf-8')
-    meta(name='viewport', content='width=device-width, initial-scale=1')
+    meta(name='viewport'   , content='width=device-width, initial-scale=1')
+    meta(name='theme-color', content='#fff')
+    meta(name='description', content='Paperplane list application.')
 
+    link(rel='manifest'  , href='./manifest.webmanifest')
     link(rel='stylesheet', href='./index.styl')
 
   body
+    noscript
+      style.
+        body {
+          overflow: hidden;
+        }
+        h1, p {
+          font-family: Roboto, sans-serif;
+        }
+        a {
+          text-decoration: underline;
+        }
+
+      h1 Sorry, but this application requires Javascript.
+      p
+        | If you'd like to know more about Paperplane before trying it out,
+        | you can check out its #[a(href='https://github.com/71/paperplane') code]
+        | on GitHub.
+
+
     #header
     #app
 

@@ -5,8 +5,10 @@ import CodeMirror from 'codemirror/lib/codemirror'
 import 'codemirror/lib/codemirror.css'
 import 'codemirror/mode/yaml/yaml'
 
+import { DefaultObserver, Node }     from '../../shared'
 import { YamlStore, YamlStoreState } from '../../shared/yaml'
-import { DefaultObserver, Node } from '../../shared'
+
+import '../styles/editor.styl'
 
 
 const editor = CodeMirror(document.createElement('div'), {

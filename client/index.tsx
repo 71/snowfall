@@ -1,30 +1,28 @@
-import { LocalStorageFileSystem, YamlStore } from '../shared/yaml'
+import { h, render } from 'preact'
+import AsyncRoute    from 'preact-async-route'
+import { Router }    from 'preact-router'
 
 import 'material-icons/iconfont/material-icons.css'
 import 'typeface-roboto-mono'
 import 'typeface-sarabun'
 
-import { h, render } from 'preact'
-import { Router }    from 'preact-router'
+import { settings } from './common/settings'
 
-import Editor, { createEditorObserver }  from './components/editor'
-import Header                            from './components/header'
-import Settings, { Settings as Options, settings } from './components/settings'
-import Tree, { Tree as DomObserver }     from './components/tree'
+import { LocalStorageFileSystem, YamlStore } from '../shared/yaml'
+
+import { createEditorObserver }      from './components/Editor'
+import Header                        from './components/Header'
+import Tree, { Tree as DomObserver } from './components/Tree'
 
 
-document.addEventListener('scroll', ev => {
-  // TODO: Add elevation to appbar
-})
+if (navigator.serviceWorker) {
+  const serviceWorkerName = 'service-worker.js'
 
-const INDEXYAML = `
-notes:
-- text: hello world
-- text: foo
-  children:
-  - text: bar
-  - text: baz
-`;
+  navigator.serviceWorker
+    .register(serviceWorkerName)
+    .then(() => console.log('Service worker registered.'))
+    .catch(err => console.warn('Service worker could not be registered.', err))
+}
 
 
 (async function() {
@@ -50,9 +48,13 @@ notes:
 
   const Main = () => (
     <Router onChange={ev => header.handleRouteChange(ev)}>
-      <Tree     default tree={tree} />
-      <Editor   path='/edit' store={store} filename='index.yaml' />
-      <Settings path='/settings' />
+      <Tree default tree={tree} />
+
+      <AsyncRoute path='/edit'
+                  getComponent={() => import('./components/Editor').then(module => module.default)}
+                  store={store} filename='index.yaml' />
+      <AsyncRoute path='/settings'
+                  getComponent={() => import('./components/Settings').then(module => module.default)} />
     </Router>
   )
 
@@ -62,7 +64,8 @@ notes:
 
   // Load data...
   if (!localStorage.getItem('index.yaml'))
-    localStorage.setItem('index.yaml', INDEXYAML)
+    // @ts-ignore
+    localStorage.setItem('index.yaml', require('fs').readFileSync(__dirname + '/common/default.yaml', 'utf8'))
   
   observers.push(tree, createEditorObserver('index.yaml', store))
   

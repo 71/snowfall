@@ -12,41 +12,10 @@ import 'preact-material-components/Switch/style.css'
 import 'preact-material-components/TextField/style.css'
 import 'preact-material-components/Typography/style.css'
 
+import Settings, { settings } from '../common/settings'
 
-export class Settings {
-  constructor(
-    public autosave = false,
-    public autosaveInterval = 0,
+import '../styles/settings.styl'
 
-    public backgroundColor = '#fff',
-    public foregroundColor = '#000',
-
-    public useFuzzySearch = false,
-    public cachePlainText = false,
-
-    public quickNavigationShorcut = 'Shift-Space',
-
-    public useVimMode = false,
-
-    public historySize = 100
-  ) {}
-
-  static load() {
-    const json = localStorage.getItem('settings')
-
-    if (json == null)
-      return new Settings()
-
-    return Object.assign(new Settings(), JSON.parse(json)) as Settings
-  }
-
-  save() {
-    localStorage.setItem('settings', JSON.stringify(this))
-  }
-}
-
-export const settings = Settings.load()
-export const appSettings = settings
 
 export default class SettingsComponent extends Component<{}, Settings> {
   componentWillMount() {
@@ -64,7 +33,7 @@ export default class SettingsComponent extends Component<{}, Settings> {
         nextState.historySize      != this.state.historySize)
       // Do not re-render for an interval change
       return false
-    
+
     return true
   }
 
@@ -74,7 +43,7 @@ export default class SettingsComponent extends Component<{}, Settings> {
         <Card>
           <div class='card-header'>
             <Typography headline6>Autosave</Typography>
-  
+
             <Switch class='right-switch'
                     checked={this.state.autosave}
                     onChange={e => this.setState({ autosave: (e.target as HTMLInputElement).checked })} />
@@ -98,6 +67,9 @@ export default class SettingsComponent extends Component<{}, Settings> {
             <TextField outlined type='text' label='Background color'
                        value={this.state.backgroundColor}
                        onChange={e => this.setState({ backgroundColor: (e.target as HTMLInputElement).value })} />
+
+            <div style='height: 2.5em; margin: 1em' class='mobile' />
+
             <TextField outlined type='text' label='Foreground color'
                        value={this.state.foregroundColor}
                        onChange={e => this.setState({ foregroundColor: (e.target as HTMLInputElement).value })} />
@@ -109,14 +81,14 @@ export default class SettingsComponent extends Component<{}, Settings> {
             <Typography headline6>Searching</Typography>
           </div>
 
-          <div class='card-header' style='width: 500px'>
+          <div class='card-header'>
             <Typography subtitle1>Use fuzzy-searching</Typography>
             <Switch class='right-switch'
                     checked={this.state.useFuzzySearch}
                     onChange={e => this.setState({ useFuzzySearch: (e.target as HTMLInputElement).checked })} />
           </div>
 
-          <div class='card-header' style='width: 500px'>
+          <div class='card-header'>
             <Typography subtitle1>Cache plain text</Typography>
 
             <Switch class='right-switch'
@@ -142,7 +114,7 @@ export default class SettingsComponent extends Component<{}, Settings> {
             <Typography headline6>Vim mode</Typography>
           </div>
 
-          <div class='card-header' style='width: 300px'>
+          <div class='card-header'>
             <Typography subtitle1>Enable Vim mode</Typography>
             <Switch class='right-switch'
                     checked={this.state.useVimMode}

@@ -7,10 +7,10 @@
   "license": "MIT",
   "private": false,
   "scripts": {
-    "dev": "parcel client/index.pug",
+    "dev": "parcel client/index.pug --no-cache",
     "dev-client": "parcel client/index.pug",
     "dev-server": "parcel server/index.ts",
-    "build": "parcel build client/index.pug server/index.ts"
+    "build-client": "rimraf dist && parcel build client/index.pug && cp dist/index.html dist/404.html"
   },
   "devDependencies": {
     "@babel/core": "^7.2.2",
@@ -27,11 +27,15 @@
     "fuzzysearch": "^1.0.3",
     "markdown-it": "^8.4.2",
     "material-icons": "^0.3.0",
+    "open-color": "^1.6.3",
     "parcel-bundler": "^1.11.0",
+    "parcel-plugin-sw-precache": "^1.0.3",
     "preact": "^8.4.2",
+    "preact-async-route": "^2.2.1",
     "preact-material-components": "^1.5.5",
     "preact-router": "^2.6.1",
     "pug": "^2.0.3",
+    "rimraf": "^2.6.3",
     "stylus": "^0.54.5",
     "typeface-roboto-mono": "^0.0.54",
     "typeface-sarabun": "^0.0.71",

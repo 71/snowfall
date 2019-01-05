@@ -1,0 +1,41 @@
+@import 'common.styl'
+
+#header > header
+  --mdc-theme-on-primary: #5f6368
+
+  background-color: $background!important
+  border-bottom: 1px solid #dadce0
+
+  .disabled, [disabled]
+    opacity: .3
+    pointer-events: none
+  
+  section.mdc-top-app-bar__section
+    flex: 0 0 auto
+  
+  section.mdc-top-app-bar__section.search-input
+    padding: 0
+    flex: 1 1 auto
+    justify-content: center
+
+    .mdc-text-field
+      width: 100%
+      max-width: 600px
+
+      @media (max-width: 1050px)
+        display: none
+
+  .search-button
+    @media (min-width: 1050px)
+      display: none
+  
+  .new-tab
+    flex: 0 0 auto
+    padding: 0 .9em
+  
+  .create-dialog
+    color: grey
+
+    .mdc-dialog__surface
+      min-width: 0
+      width: 300px

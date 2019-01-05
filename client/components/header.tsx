@@ -1,20 +1,30 @@
 import { h, Component }       from 'preact'
 import { RouterOnChangeArgs } from 'preact-router'
 
-import Menu       from 'preact-material-components/Menu'
-import TextField  from 'preact-material-components/TextField'
-import TopAppBar  from 'preact-material-components/TopAppBar'
+import Dialog    from 'preact-material-components/Dialog'
+import Menu      from 'preact-material-components/Menu'
+import TabBar    from 'preact-material-components/TabBar'
+import TextField from 'preact-material-components/TextField'
+import TopAppBar from 'preact-material-components/TopAppBar'
 
+import 'preact-material-components/Button/style.css'
+import 'preact-material-components/Dialog/style.css'
 import 'preact-material-components/List/style.css'
 import 'preact-material-components/Menu/style.css'
 import 'preact-material-components/MenuSurface/style.css'
+import 'preact-material-components/Tab/style.css'
+import 'preact-material-components/TabBar/style.css'
+import 'preact-material-components/TabIndicator/style.css'
+import 'preact-material-components/TabScroller/style.css'
 import 'preact-material-components/TextField/style.css'
 import 'preact-material-components/TopAppBar/style.css'
 
-import { YamlStore, YamlStoreState } from '../../shared/yaml'
+import { settings }                  from '../common/settings'
 import { DefaultObserver, Node }     from '../../shared'
+import { YamlStore, YamlStoreState } from '../../shared/yaml'
 import { HtmlNodeState }             from './tree'
-import { settings }                  from './settings'
+
+import '../styles/header.styl'
 
 
 export class HeaderComponentState {
@@ -112,6 +122,9 @@ export default class HeaderComponent extends Component<{ store: YamlStore }, Hea
     const inHomeRoute = !['/edit', '/settings'].includes(route)
 
     let menu: Menu
+    let createFileDialog: Dialog
+    let fileInput: any
+    let restoreTab: () => void
 
     return (
       <TopAppBar onNav={null}>
@@ -173,6 +186,44 @@ export default class HeaderComponent extends Component<{ store: YamlStore }, Hea
           </TopAppBar.Section>
 
         </TopAppBar.Row>
+
+        { route == '/edit' &&
+          <TabBar ref={x => x && x.MDComponent &&
+            x.MDComponent.tabList_[x.MDComponent.tabList_.length - 1].listen('MDCTab:interacted', () => {
+              const activeTabIndex = x.MDComponent.tabList_.findIndex(x => x.active)
+              restoreTab = () => x.MDComponent.activateTab(activeTabIndex)
+              createFileDialog.MDComponent.show()
+
+              setTimeout(() => fileInput.input_.focus(), 200)
+            })
+          }>
+            {['index.yaml'].map(filename => 
+              <TabBar.Tab active>
+                <TabBar.TabLabel>{filename}</TabBar.TabLabel>
+              </TabBar.Tab>
+            )}
+
+            <TabBar.Tab class='new-tab'>
+              <TabBar.TabIcon>add</TabBar.TabIcon>
+            </TabBar.Tab>
+          </TabBar>
+        }
+
+        <Dialog class='create-dialog' ref={x => createFileDialog = x}
+                onAccept={() => (fileInput.value = '') || alert('Should create a file now')}
+                onCancel={() => (fileInput.value = '') || restoreTab()}>
+          <Dialog.Body>
+            <TextField outerStyle='width: 100%; margin-bottom: -1em'
+                       outlined label='Filename' pattern='[\w\d]+\.yaml'
+                       helpertextvalidationmsg='This must be a valid .yaml file name.'
+                       ref={x => fileInput = x.MDComponent} />
+          </Dialog.Body>
+
+          <Dialog.Footer>
+            <Dialog.FooterButton cancel>Cancel</Dialog.FooterButton>
+            <Dialog.FooterButton accept default>Create</Dialog.FooterButton>
+          </Dialog.Footer>
+        </Dialog>
       </TopAppBar>
     )
   }

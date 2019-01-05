@@ -1,0 +1,6 @@
+notes:
+- text: hello world
+- text: foo
+  children:
+  - text: bar
+  - text: baz
