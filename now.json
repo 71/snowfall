@@ -9,7 +9,10 @@
       "use": "@now/static-build"
     }
   ],
+  "github": {
+    "silent": true
+  },
   "routes": [
-    { "src": "/.*", "dest": "index.html" }
+    { "src": "/(?:(.+\\.)((?!js$|css$|webmanifest$|html$)[^.]*)|[^.]+)", "dest": "index.html" }
   ]
 }
