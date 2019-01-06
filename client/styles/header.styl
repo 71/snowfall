@@ -1,9 +1,12 @@
 @import 'common.styl'
 
+body.dark #header > header
+  --mdc-theme-on-primary: #ccc
+
 #header > header
   --mdc-theme-on-primary: #5f6368
 
-  background-color: $background!important
+  background-color: var(--background)!important
   border-bottom: 1px solid #dadce0
 
   .disabled, [disabled]

@@ -1,8 +1,20 @@
 @import 'common.styl'
 
-.tree-root > div > .node-wrapper:first-child
-  & > .node-children
-    border-left: none
+.tree-root
+  & > .zoom > .node-wrapper:first-child
+    & > .node-border
+      display: none
+
+    & > .node-content-line
+      margin-bottom: 1em
+
+      & > .node-bullet
+        display: none
+
+      & > .node-content, .CodeMirror
+        font-size: 24px
+
+  & > div > .node-wrapper:first-child > .node-children
     padding-left: 0
     margin-left: 0
 
@@ -45,7 +57,7 @@
   .node-content
     display: inline-block
     flex-grow: 100
-    margin-top: .5em
+    margin: .5em 0
 
 
   // Bullet
@@ -79,33 +91,45 @@
   // Children
 
   box-sizing: border-box
+  padding-bottom: 0
 
   .node-children
-    border-left: solid var(--dim-accent) 1px
     display: block
     margin-left: 1.05em
     margin-top: -.5em
     padding-left: 1em
 
-  padding-bottom: .5em
+  .node-border
+    border-left: solid var(--dim-accent) 1px
+    top: 2.2em
+    height: calc(100% - 2.4em)
+    width: 1px
+    left: 1.1em
+    position: absolute
 
   &.no-children
-    padding-bottom: 0
-
-    .node-children
+    .node-border, .node-children
       display: none
 
 
 
   // Render
 
+  .node-display
+    code
+      background: var(--dim-accent)
+      border-radius: .2em
+      padding: .1em .3em
+      font-family: $monospace
+      font-size: .9em
+
   .node-display::before
     content: "\200B"
 
   .node-content, .CodeMirror
-    font-family: Sarabun, sans-serif
+    font-family: $sans-serif
     font-size: 18px
-    color: #111
+    color: var(--foreground)
 
 
   // Editor
@@ -116,3 +140,7 @@
 
   .CodeMirror-lines, .CodeMirror pre
     padding: 0
+
+body.dark
+  .CodeMirror-cursor
+    border-left: 1px solid var(--accent)

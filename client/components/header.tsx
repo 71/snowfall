@@ -175,8 +175,10 @@ export default class HeaderComponent extends Component<{ store: YamlStore, fs: F
             <button class={disabled(!this.state.canSave, 'material-icons mdc-top-app-bar__action-item')}
                     label='Save changes' onClick={() => this.save()}>save</button>
 
-            <a class={disabled(this.state.canSave || route == '/edit', 'material-icons mdc-top-app-bar__action-item desktop')}
-               label='Edit' href='/edit'>edit</a>
+            { settings.enableEditor &&
+              <a class={disabled(this.state.canSave || route == '/edit', 'material-icons mdc-top-app-bar__action-item desktop')}
+                label='Edit' href='/edit'>edit</a>
+            }
 
             <a class={disabled(this.state.canSave || route == '/settings', 'material-icons mdc-top-app-bar__action-item desktop')}
                label='Settings' href='/settings'>settings</a>

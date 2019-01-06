@@ -1,4 +1,52 @@
-$background = white
+body
+  --background: white
+  --foreground: #111
+  --dim-foreground: gray
+
+  --accent: white
+
+body.dark
+  --background: black
+  --foreground: #eee
+  --dim-foreground: white
+
+  --accent: black
+
+  --mdc-theme-primary: #bb92f7
+  --mdc-theme-background: var(--background)
+  --mdc-theme-surface: #060606
+  --mdc-theme-on-surface: white
+  --mdc-theme-text-primary-on-background: #eee
+
+  .mdc-button:disabled
+    color: white
+
+  .mdc-text-field:not(.mdc-text-field--disabled)
+    color: rgba(255, 255, 255, 0.87)
+
+    & input::placeholder
+      color: white
+
+    &:not(.mdc-text-field--focused) .mdc-text-field__input:hover ~ .mdc-notched-outline .mdc-notched-outline__path
+      color: rgba(255, 255, 255, 0.87)
+      stroke: @color
+    &:not(.mdc-text-field--focused) .mdc-text-field__input:hover ~ .mdc-notched-outline__idle
+      color: rgba(255, 255, 255, 0.87)
+      border-color: @color
+
+    .mdc-text-field__input
+      color: rgba(255, 255, 255, 0.87)
+    .mdc-floating-label
+      color: rgba(255, 255, 255, 0.87)
+    .mdc-notched-outline__idle
+      color: rgba(255, 255, 255, 0.87)
+      border-color: @color
+    .mdc-notched-outline__path
+      color: rgba(255, 255, 255, 0.87)
+      stroke: @color
+    .mdc-text-field__icon
+      color: rgba(255, 255, 255, 0.95)
+
 
 mobile()
   @media screen and (max-width: 720px)
@@ -7,3 +55,11 @@ mobile()
 desktop()
   @media screen and (min-width: 720px)
     {block}
+
+dark()
+  /body.dark {selector()}
+    {block}
+
+
+$monospace = 'Roboto Mono', monospace
+$sans-serif = Sarabun, Roboto, 'Segoe UI', sans-serif

@@ -8,5 +8,8 @@
       "src": "package.json",
       "use": "@now/static-build"
     }
+  ],
+  "routes": [
+    { "src": "/.*", "dest": "index.html" }
   ]
 }

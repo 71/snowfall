@@ -10,7 +10,6 @@ import { settings } from './common/settings'
 
 import { LocalStorageFileSystem, YamlStore } from '../shared/yaml'
 
-import { createEditorObserver }      from './components/Editor'
 import Header                        from './components/Header'
 import Tree, { Tree as DomObserver } from './components/Tree'
 
@@ -44,6 +43,9 @@ if (!localStorage.getItem('index.yaml')) {
   const appElement = document.querySelector('#app')
   const headerElement = document.querySelector('#header')
 
+  if (settings.darkMode)
+    document.body.classList.add('dark')
+
   // Clean up HTML from previous sessions...
   appElement.innerHTML = ''
   headerElement.innerHTML = ''
@@ -53,12 +55,15 @@ if (!localStorage.getItem('index.yaml')) {
   let header: Header
 
   const Main = () => (
-    <Router onChange={ev => header.handleRouteChange(ev)}>
+    <Router onChange={ev => { header.handleRouteChange(ev); tree.handleRouteChange(ev); }}>
       <Tree default tree={tree} />
 
-      <AsyncRoute path='/edit'
-                  getComponent={() => import('./components/Editor').then(module => module.default)}
-                  store={store} filename='index.yaml' />
+      { settings.enableEditor
+      ? <AsyncRoute path='/edit'
+                    getComponent={() => import('./components/Editor').then(module => module.default)}
+                    store={store} filename='index.yaml' />
+      : <div path='/this-will-never-match-hopefully' />
+      }
       <AsyncRoute path='/settings'
                   getComponent={() => import('./components/Settings').then(module => module.default)} />
     </Router>
@@ -69,7 +74,10 @@ if (!localStorage.getItem('index.yaml')) {
 
 
   // Load data...
-  observers.push(tree, createEditorObserver(store))
+  observers.push(tree)
+
+  if (settings.enableEditor)
+    observers.push(require('./components/Editor').createEditorObserver(store))
 
   await store.load('index.yaml')
 })()

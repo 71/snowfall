@@ -89,7 +89,7 @@ export abstract class YamlFileOrChildNode {
   private _seq: yaml.ast.SeqBase
   private _map: yaml.ast.MapBase
 
-  constructor(public node: yaml.ast.MapBase | yaml.ast.AstNode, public textKey: string) {
+  constructor(public node: yaml.ast.MapBase | yaml.ast.AstNode) {
     if (node.type == 'MAP') {
       this._map = node
       this._seq = NodeHelpers.getNotes(node)
@@ -99,20 +99,20 @@ export abstract class YamlFileOrChildNode {
   get seq() {
     if (this._seq)
       return this._seq
-    
+
     // we don't have children / we're a string
     if (this.node.type != 'MAP')
       this.node = <yaml.ast.MapBase>yaml.createNode({ text: this.node.toJSON(), children: [] })
     else
       this.node.items.push((<yaml.ast.MapBase>yaml.createNode({ children: [] })).items[0])
-    
+
     return this._seq = NodeHelpers.getNotes(this.node)
   }
 
   get map() {
     if (this._map)
       return this._map
-    
+
     return this.node = this._map = <yaml.ast.MapBase>yaml.createNode({ text: this.node.toJSON() })
   }
 }
@@ -127,10 +127,9 @@ export class YamlFileNode extends YamlFileOrChildNode {
   constructor(
     public filename: string,
     public document: yaml.ast.Document,
-    public contents: string,
-    public textKey : string
+    public contents: string
   ) {
-    super(document.contents, textKey)
+    super(document.contents)
   }
 
   get file() {
@@ -144,8 +143,8 @@ export class YamlFileNode extends YamlFileOrChildNode {
 export class YamlChildNode extends YamlFileOrChildNode {
   public kind: 'child' = 'child'
 
-  constructor(public node: yaml.ast.MapBase | yaml.ast.AstNode, public textKey: string = null, public file: YamlFileNode) {
-    super(node, textKey)
+  constructor(public node: yaml.ast.MapBase | yaml.ast.AstNode, public file: YamlFileNode) {
+    super(node)
   }
 }
 
@@ -158,9 +157,9 @@ class IncludeNode implements yaml.ast.Node {
   cstNode?: yaml.cst.Node
   range: [number, number]
   tag: string
-  
+
   type = 'INCLUDE'
-  
+
   constructor(public filename: string) {}
 
   toJSON() {
@@ -177,7 +176,7 @@ const includeTag: yaml.Tag = {
   resolve: (doc, cstNode: yaml.cst.Node) => {
     if (cstNode.type != 'PLAIN')
       throw ''
-    
+
     return new IncludeNode(cstNode.rawValue)
   },
 
@@ -207,9 +206,10 @@ export class YamlStore implements Store<YamlStoreState> {
 
   async load(filename: string): Promise<string[]> {
     const errors: string[] = []
+    const ids = {}
 
     this.files.length = 0
-    this.root = await BaseNode.createRoot<YamlStoreState>(this.observers)
+    this.root = await BaseNode.createRoot<YamlStoreState>(this.observers, ids)
 
     for (const observer of this.observers) {
       const obs = observer as any as StoreObserver<any>
@@ -220,7 +220,7 @@ export class YamlStore implements Store<YamlStoreState> {
 
     const content  = await this.fs.read(filename)
     const document = yaml.parseDocument(content, { tags: [ includeTag ] })
-    const root     = new YamlFileNode(filename, document, content, null)
+    const root     = new YamlFileNode(filename, document, content)
 
     this.files.push(root)
 
@@ -233,7 +233,7 @@ export class YamlStore implements Store<YamlStoreState> {
         if (typeof item == 'string')
         {
           await parent.createChild(i, item, null, child => {
-            child.syntax = new YamlChildNode(node, null, currentFile)
+            child.syntax = new YamlChildNode(node, currentFile)
           })
         }
         else if (typeof item == 'object')
@@ -269,32 +269,28 @@ export class YamlStore implements Store<YamlStoreState> {
             item = node.toJSON()
           }
 
-          let text = null
-          let textKey = null
+          const text = item['text']
 
-          for (const key of ['text', 'note']) {
-            if (typeof item[key] == 'string') {
-              text = item[key]
-              textKey = key
-
-              break
-            }
-          }
-
-          if (!text) {
+          if (typeof text != 'string') {
             errors.push(`A note does not have any text.`)
             continue
           }
 
           const child = await parent.createChild(i, text, item, child => {
             if (filename) {
-              child.syntax = new YamlFileNode(filename, document, contents, textKey)
+              child.syntax = new YamlFileNode(filename, document, contents)
 
               this.files.push(child.syntax)
             } else {
-              child.syntax = new YamlChildNode(node, textKey, currentFile)
+              child.syntax = new YamlChildNode(node, currentFile)
             }
           })
+
+          const id = item['id']
+
+          if (typeof id == 'string') {
+            ids[id] = child
+          }
 
           const map = <yaml.ast.Map>node
 
@@ -357,7 +353,7 @@ export class YamlStore implements Store<YamlStoreState> {
     for (const file of this.files) {
       if (!file.isDirty)
         continue
-      
+
       const str = file.document.toString()
 
       await this.fs.write(file.filename, str)
@@ -380,10 +376,10 @@ export class YamlStore implements Store<YamlStoreState> {
 
     if (throttle == Infinity)
       return
-    
+
     if (this.saveTimeout)
       clearTimeout(this.saveTimeout)
-    
+
     this.saveTimeout = setTimeout(() => {
       this.save()
     }, throttle)
@@ -402,8 +398,8 @@ export class YamlStore implements Store<YamlStoreState> {
     if (node.syntax || !node.parent)
       // already initialized (or root), we don't care
       return
-    
-    node.syntax = new YamlChildNode(yaml.createNode(node.data || { text: node.text }) as any, 'text', node.parent.syntax.file)
+
+    node.syntax = new YamlChildNode(yaml.createNode(node.dataOrText || { text: node.text }) as any, node.parent.syntax.file)
     node.parent.syntax.seq.items.splice(node.index, 0, <yaml.ast.Map>node.syntax.map)
 
     this.markDirty(node)

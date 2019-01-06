@@ -4,6 +4,7 @@ import CodeMirror from 'codemirror/lib/codemirror'
 
 import 'codemirror/lib/codemirror.css'
 import 'codemirror/mode/yaml/yaml'
+import 'codemirror/theme/material.css'
 
 import { settings } from '../common/settings'
 import { DefaultObserver, Node }     from '../../shared'
@@ -14,6 +15,7 @@ import '../styles/editor.styl'
 
 const editor = CodeMirror(document.createElement('div'), {
   mode: 'yaml',
+  theme: settings.darkMode ? 'material' : 'default',
 
   autofocus  : true,
   lineNumbers: false

@@ -1,4 +1,5 @@
-import { Component } from "preact";
+import { Component } from 'preact'
+
 
 export class Settings {
   private readonly listeners: {
@@ -12,9 +13,12 @@ export class Settings {
 
   public backgroundColor = '#fff'
   public foregroundColor = '#000'
+  public darkMode = false
 
   public useFuzzySearch = false
   public cachePlainText = false
+
+  public enableEditor = false
 
   public quickNavigationShorcut = 'Shift-Space'
 
@@ -53,7 +57,23 @@ export class Settings {
   }
 
   save() {
+    const listeners = this.listeners
+
+    // @ts-ignore
+    delete this.listeners
+
     localStorage.setItem('settings', JSON.stringify(this))
+
+    // @ts-ignore
+    this.listeners = listeners
+  }
+
+  /**
+   * Returns whether the given page is a 'main page', that is, a page
+   * that enables the user to edit their list.
+   */
+  isMainPage(page: string): boolean {
+    return page == '/settings' || (this.enableEditor && page == '/edit')
   }
 }
 

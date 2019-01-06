@@ -1,12 +1,15 @@
 import CodeMirror, { Pass } from 'codemirror'
 import MarkdownIt           from 'markdown-it'
 import { h, Component }     from 'preact'
+import { route, RouterOnChangeArgs } from 'preact-router'
 
 import 'codemirror/addon/display/autorefresh'
 import 'codemirror/lib/codemirror.css'
 import 'codemirror/mode/markdown/markdown'
 
 import { Node, NodeObserver } from '../../shared'
+import { settings }           from '../common/settings'
+import { openMenu }           from './ContextMenu'
 
 import '../styles/tree.styl'
 
@@ -35,7 +38,7 @@ const createCodeMirror = (tree: Tree) => CodeMirror(document.createElement('div'
 
       CodeMirror.signal(cm, 'blur')
 
-      if (node.children.length > 0)
+      if (node.children.length > 0 || node == tree.rootNode)
         tree.insertNewChild(node)
       else
         tree.insertNewSibling(node)
@@ -44,7 +47,7 @@ const createCodeMirror = (tree: Tree) => CodeMirror(document.createElement('div'
     'Shift-Tab' (cm) {
       const node = tree.activeNode
 
-      if (node.depth == 0)
+      if (node.depth == 0 || node == tree.rootNode)
         return
 
       CodeMirror.signal(cm, 'blur')
@@ -57,6 +60,10 @@ const createCodeMirror = (tree: Tree) => CodeMirror(document.createElement('div'
 
     'Tab' (cm) {
       const node = tree.activeNode
+
+      if (node == tree.rootNode)
+        return
+
       const promise = node.increaseDepth()
 
       if (!promise)
@@ -199,9 +206,13 @@ document.addEventListener('mouseup', () => {
   }, { once: true })
 })
 
+
 // Tree
 export class Tree implements NodeObserver<HtmlNodeState> {
+  private url: string
+
   public cm: CodeMirror.Editor
+  public rootNode: Node<HtmlNodeState>
   public activeNode: Node<HtmlNodeState>
 
   public rootElement = document.createElement('div')
@@ -222,13 +233,52 @@ export class Tree implements NodeObserver<HtmlNodeState> {
     })
   }
 
+  // Called when the root node is loaded
+  loaded() {
+    this.handleRouteChange(this)
+  }
+
+  handleRouteChange({ url }: { url: string }) {
+    this.url = url
+
+    if (this.rootNode == null || url == '/edit' || url == '/settings')
+      return
+
+    const node = this.rootNode.root.resolveWithStringPath(url)
+
+    if (node == null) {
+      route('/', true)
+      return
+    }
+
+    if (node.isRoot)
+      this.rootElement.classList.remove('zoom')
+    else
+      this.rootElement.classList.add('zoom')
+
+    const oldRootNode = this.rootNode
+
+    this.rootNode.wrapperElement.remove()
+    this.rootNode = node
+    this.rootElement.appendChild(node.wrapperElement)
+
+    if (!oldRootNode.isRoot)
+      this.reinsert(oldRootNode)
+  }
+
 
   private updateStyle(node: Node<HtmlNodeState>) {
-    const accent = opencolor[Object.keys(opencolor)[3 + (node.depth % 12)]]
+    const accent: string[10] = opencolor[Object.keys(opencolor)[3 + (node.depth % 12)]]
 
-    node.wrapperElement.style.setProperty('--accent'    , accent[6])
-    node.wrapperElement.style.setProperty('--dim-accent', accent[2])
-    node.wrapperElement.style.setProperty('--bg-accent' , accent[0])
+    if (settings.darkMode) {
+      node.wrapperElement.style.setProperty('--accent'    , accent[5])
+      node.wrapperElement.style.setProperty('--dim-accent', accent[7])
+      node.wrapperElement.style.setProperty('--bg-accent' , accent[9])
+    } else {
+      node.wrapperElement.style.setProperty('--accent'    , accent[6])
+      node.wrapperElement.style.setProperty('--dim-accent', accent[2])
+      node.wrapperElement.style.setProperty('--bg-accent' , accent[0])
+    }
   }
 
   private updateMarkdownRender(node: Node<HtmlNodeState>) {
@@ -263,7 +313,10 @@ export class Tree implements NodeObserver<HtmlNodeState> {
 
 
   inserted(node: Node<HtmlNodeState>) {
-    if (node.isRoot) {
+    if (node.isRoot && this.rootNode == null)
+      this.rootNode = node
+
+    if (node == this.rootNode) {
       node.wrapperElement = hh('div', { class: 'node-wrapper' },
         node.childrenElement = hh('ul', { class: 'node-children' })
       )
@@ -276,6 +329,7 @@ export class Tree implements NodeObserver<HtmlNodeState> {
 
     node.wrapperElement =
       hh('div', { class: 'node-wrapper' },
+        hh('div', { class: 'node-border' }),
         hh('div', { class: 'node-content-line' },
           node.bulletElement = hh('div', { class: 'node-bullet' }, hh('div', { class: 'node-inner-bullet' })),
           node.contentElement = hh('div', { class: 'node-content' },
@@ -327,11 +381,12 @@ export class Tree implements NodeObserver<HtmlNodeState> {
       selecting = true
     })
 
-    document.addEventListener('mouseup', ev => {
+    document.addEventListener('mouseup', () => {
       selecting = false
       previouslySelected = null
     })
 
+    node.bulletElement.addEventListener('click'     , () => openMenu(this, node))
     node.bulletElement.addEventListener('mouseenter', () => node.wrapperElement.classList.add('active'))
     node.bulletElement.addEventListener('mouseleave', () => node.wrapperElement.classList.remove('active'))
 
@@ -341,7 +396,7 @@ export class Tree implements NodeObserver<HtmlNodeState> {
   removed(node: Node<HtmlNodeState>, oldParent: Node<HtmlNodeState>) {
     node.wrapperElement.remove()
 
-    if (node.parent.children.length == 0)
+    if (oldParent.children.length == 0)
       oldParent.wrapperElement.classList.add('no-children')
   }
 
@@ -446,7 +501,7 @@ export class Tree implements NodeObserver<HtmlNodeState> {
   insertNewChild(node: Node<HtmlNodeState>) {
     node
       .createChild(0)
-      .then(child => console.log(child.wrapperElement) as unknown || this.focus(child, null))
+      .then(child => this.focus(child, null))
   }
 
   insertNewSibling(node: Node<HtmlNodeState>) {
@@ -464,6 +519,9 @@ export class Tree implements NodeObserver<HtmlNodeState> {
   }
 
   focusPrevious(node: Node<HtmlNodeState>, offset: number = this.cm.getDoc().getCursor().ch) {
+    if (node == this.rootNode)
+      return
+
     const index = node.index
 
     if (index > 0)
@@ -475,6 +533,13 @@ export class Tree implements NodeObserver<HtmlNodeState> {
   }
 
   focusNext(node: Node<HtmlNodeState>, offset: number = this.cm.getDoc().getCursor().ch) {
+    if (node == this.rootNode) {
+      if (node.children.length > 0)
+        return () => this.focus(node.children[0], offset)
+      else
+        return null
+    }
+
     const index = node.index
 
     if (node.children.length > 0)

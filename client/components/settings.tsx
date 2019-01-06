@@ -12,7 +12,7 @@ import 'preact-material-components/Switch/style.css'
 import 'preact-material-components/TextField/style.css'
 import 'preact-material-components/Typography/style.css'
 
-import Settings, { settings } from '../common/settings'
+import { settings, Settings } from '../common/settings'
 
 import '../styles/settings.styl'
 
@@ -60,7 +60,27 @@ export default class SettingsComponent extends Component<{}, Settings> {
 
         <Card>
           <div class='card-header'>
+            <Typography headline6>Editor</Typography>
+          </div>
+
+          <div class='card-header'>
+            <Typography subtitle1>Enable editor</Typography>
+            <Switch class='right-switch'
+                    checked={this.state.enableEditor}
+                    onChange={e => this.setState({ enableEditor: (e.target as HTMLInputElement).checked })} />
+          </div>
+        </Card>
+
+        <Card>
+          <div class='card-header'>
             <Typography headline6>Theme</Typography>
+          </div>
+
+          <div class='card-header'>
+            <Typography subtitle1>Enable dark mode</Typography>
+            <Switch class='right-switch'
+                    checked={this.state.darkMode}
+                    onChange={e => this.setState({ darkMode: (e.target as HTMLInputElement).checked })} />
           </div>
 
           <div style='display: flex; flex-wrap: wrap; justify-content: space-between; max-width: 470px'>
