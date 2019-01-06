@@ -18,11 +18,23 @@ export function openMenu(tree: Tree, node: Node<HtmlNodeState>) {
     () => node.remove()
   ]
 
+  if (node.children.length > 0) {
+    actions.splice(0, 0, () => node.wrapperElement.classList.toggle('collapsed'))
+  }
+
   let menu = null
 
   render(<Menu ref={x => menu = x}>
+    { node.children.length > 0 &&
+      <List.Item>{node.wrapperElement.classList.contains('collapsed') ? 'Expand' : 'Collapse'}</List.Item>
+    }
+    { node.children.length > 0 &&
+      <List.Divider />
+    }
+
     <List.Item>Zoom in</List.Item>
     <List.Divider />
+
     <List.Item>Insert child</List.Item>
     <List.Item>Insert sibling</List.Item>
     <List.Item>Remove</List.Item>

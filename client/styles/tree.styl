@@ -107,7 +107,7 @@
     left: 1.1em
     position: absolute
 
-  &.no-children
+  &.no-children, &.collapsed
     .node-border, .node-children
       display: none
 
@@ -141,6 +141,8 @@
   .CodeMirror-lines, .CodeMirror pre
     padding: 0
 
-body.dark
   .CodeMirror-cursor
     border-left: 1px solid var(--accent)
+
+.mdc-menu .mdc-list-item
+  height: 40px
