@@ -10,7 +10,7 @@ import 'preact-material-components/style.css'
 
 import { settings } from './common/settings'
 
-import { LocalStorageFileSystem, YamlStore } from '../shared/yaml'
+import { YamlStore } from '../shared/yaml'
 
 import Header                        from './components/Header'
 import Tree, { Tree as DomObserver } from './components/Tree'
@@ -25,11 +25,6 @@ if (navigator.serviceWorker) {
     .catch(err => console.warn('Service worker could not be registered.', err))
 }
 
-if (!localStorage.getItem('index.yaml')) {
-  // @ts-ignore
-  localStorage.setItem('index.yaml', require('fs').readFileSync(__dirname + '/common/default.yaml', 'utf8'))
-}
-
 
 (async function() {
   // Set up storage...
@@ -38,7 +33,13 @@ if (!localStorage.getItem('index.yaml')) {
   if (settings.cachePlainText)
     observers.push(new (await import('./helpers/plainTextCacher')).default())
 
-  const fs = new LocalStorageFileSystem()
+  const fs = await settings.getFileSystem()
+  const files = await fs.getFiles()
+
+  if (!files.includes('index.yaml')) {
+    await fs.createFile('index.yaml', require('fs').readFileSync(__dirname + '/common/default.yaml', 'utf8'))
+  }
+
   const store = new YamlStore(fs, observers)
 
   // Set up view...

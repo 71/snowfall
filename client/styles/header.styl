@@ -19,17 +19,18 @@ body.dark #header > header
   section.mdc-top-app-bar__section.search-input
     padding: 0
     flex: 1 1 auto
-    justify-content: center
+    justify-content: left
 
     .mdc-text-field
+      margin: 0 5em
+      max-width: 800px
       width: 100%
-      max-width: 600px
 
-      @media (max-width: 1050px)
+      +mobile()
         display: none
 
-  .search-button
-    @media (min-width: 1050px)
+  +desktop()
+    .search-button
       display: none
 
   .new-tab

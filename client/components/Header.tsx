@@ -144,11 +144,8 @@ export default class HeaderComponent extends Component<{ store: YamlStore, fs: F
           <TopAppBar.Section align-start>
             <a class={disabled(route == '/', 'material-icons mdc-top-app-bar__action-item')}
                label='Home' href='/'>home</a>
-
-            { inHomeRoute && route && route != '/' &&
-              <a class='material-icons mdc-top-app-bar__action-item'
-                 label='Up' href={aboveRoute(route)}>expand_less</a>
-            }
+            <a class='material-icons mdc-top-app-bar__action-item' style={inHomeRoute && route && route != '/' ? '' : 'visibility: hidden'}
+               label='Up' href={aboveRoute(route || '/')}>expand_less</a>
           </TopAppBar.Section>
 
           <TopAppBar.Section class='search-input'>

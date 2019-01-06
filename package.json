@@ -35,6 +35,8 @@
     "preact-material-components": "^1.5.5",
     "preact-router": "^2.6.1",
     "pug": "^2.0.3",
+    "remotestorage-widget": "^1.3.0",
+    "remotestoragejs": "^1.2.0",
     "rimraf": "^2.6.3",
     "stylus": "^0.54.5",
     "typeface-roboto-mono": "^0.0.54",

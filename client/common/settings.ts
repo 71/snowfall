@@ -1,5 +1,7 @@
 import { Component } from 'preact'
 
+import { FileSystem } from '../../shared/yaml'
+
 
 export class Settings {
   private readonly listeners: {
@@ -27,6 +29,8 @@ export class Settings {
   public historySize = 100
 
   public activeFile = 'index.yaml'
+
+  public storage: 'localStorage' | 'remoteStorage' = 'localStorage'
 
   notifyPropertyChanged<P extends keyof this>(prop: P, value: this[P]) {
     for (const listener of this.listeners[prop] || [])
@@ -74,6 +78,16 @@ export class Settings {
    */
   isMainPage(page: string): boolean {
     return !(page == '/settings' || (this.enableEditor && page == '/edit'))
+  }
+
+  /**
+   * Returns the `FileSystem` chosen by the user to store data.
+   */
+  async getFileSystem(): Promise<FileSystem> {
+    if (this.storage == 'localStorage')
+      return new (await import('./localStorage')).LocalStorageFileSystem()
+    else if (this.storage == 'remoteStorage')
+      return new (await import('./remoteStorage')).RemoteStorageFileSystem()
   }
 }
 

@@ -308,6 +308,8 @@ export class BaseNode<T> {
 
     if (propertyKey == 'text')
       this._text = newValue
+    if (propertyKey == 'id')
+      this.root._ids[newValue] = this as any as Node<T>
 
     return this.notify(store => store.propertyUpdated(this as any, propertyKey, newValue, oldValue))
   }

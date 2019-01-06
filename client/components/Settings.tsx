@@ -1,6 +1,7 @@
 import { h, Component } from 'preact'
 
 import Card       from 'preact-material-components/Card'
+import Select     from 'preact-material-components/Select'
 import Slider     from 'preact-material-components/Slider'
 import Switch     from 'preact-material-components/Switch'
 import TextField  from 'preact-material-components/TextField'
@@ -9,6 +10,8 @@ import Typography from 'preact-material-components/Typography'
 import { settings, Settings } from '../common/settings'
 
 import '../styles/settings.styl'
+
+import ConnectRemoteStorage from './ConnectRemoteStorage'
 
 
 export default class SettingsComponent extends Component<{}, Settings> {
@@ -147,6 +150,23 @@ export default class SettingsComponent extends Component<{}, Settings> {
                     value={this.state.historySize}
                     onChange={e => this.setState({ historySize: (e as any).detail.value })} />
           </div>
+        </Card>
+
+        <Card>
+          <div class='card-header'>
+            <Typography headline6>Syncing</Typography>
+          </div>
+
+          <Select outlined hintText='File system'
+                  selectedIndex={['localStorage', 'remoteStorage'].indexOf(this.state.storage) + 1}
+                  onChange={e => this.setState({ storage: ['localStorage', 'remoteStorage'][e.target.selectedIndex - 1] } as any)}>
+              <Select.Item>Local Storage</Select.Item>
+              <Select.Item>Remote Storage</Select.Item>
+          </Select>
+
+          { this.state.storage == 'remoteStorage' &&
+            <ConnectRemoteStorage />
+          }
         </Card>
 
         <div style='height: 1em' />

@@ -209,7 +209,7 @@ document.addEventListener('mouseup', () => {
 
 // Tree
 export class Tree implements NodeObserver<HtmlNodeState> {
-  private url: string
+  public url: string
 
   public cm: CodeMirror.Editor
   public rootNode: Node<HtmlNodeState>
