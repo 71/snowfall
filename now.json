@@ -13,6 +13,6 @@
     "silent": true
   },
   "routes": [
-    { "src": "/(?:(.+\\.)((?!js$|css$|webmanifest$|html$)[^.]*)|[^.]+)", "dest": "index.html" }
+    { "src": "/(?:(.+\\.)((?!js$|css$|webmanifest$|html$|woff2$|ttf$|woff$|ico$|)[^.]*)|[^.]+)$", "dest": "index.html" }
   ]
 }
