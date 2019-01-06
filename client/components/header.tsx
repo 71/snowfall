@@ -19,10 +19,10 @@ import 'preact-material-components/TabScroller/style.css'
 import 'preact-material-components/TextField/style.css'
 import 'preact-material-components/TopAppBar/style.css'
 
-import { settings }                  from '../common/settings'
-import { DefaultObserver, Node }     from '../../shared'
-import { YamlStore, YamlStoreState } from '../../shared/yaml'
-import { HtmlNodeState }             from './tree'
+import { settings }              from '../common/settings'
+import { DefaultObserver, Node } from '../../shared'
+import { YamlStore, YamlStoreState, FileSystem } from '../../shared/yaml'
+import { HtmlNodeState }         from './tree'
 
 import '../styles/header.styl'
 
@@ -33,13 +33,15 @@ export class HeaderComponentState {
 
   canUndo: boolean
   canRedo: boolean
+
+  files: string[]
 }
 
 const stringIncludes = settings.useFuzzySearch
                      ? require('fuzzysearch')
                      : (needle: string, haystack: string) => haystack.includes(needle)
 
-export default class HeaderComponent extends Component<{ store: YamlStore }, HeaderComponentState> {
+export default class HeaderComponent extends Component<{ store: YamlStore, fs: FileSystem }, HeaderComponentState> {
   private loaded = false
 
   private observer = new DefaultObserver({
@@ -51,6 +53,12 @@ export default class HeaderComponent extends Component<{ store: YamlStore }, Hea
     moved   : () => this.setState({ canSave: true }),
     propertyUpdated: () => this.setState({ canSave: true })
   })
+
+  constructor() {
+    super()
+
+    this.setState({ files: [] })
+  }
 
   handleRouteChange(e: RouterOnChangeArgs) {
     this.setState({ route: e.url })
@@ -93,9 +101,19 @@ export default class HeaderComponent extends Component<{ store: YamlStore }, Hea
     visit(this.props.store.root as any)
   }
 
-  componentWillReceiveProps({ store }: { store: YamlStore }) {
-    if (!store.observers.includes(this.observer))
-      store.observers.push(this.observer)
+  componentWillMount() {
+    if (!this.props.store.observers.includes(this.observer))
+      this.props.store.observers.push(this.observer)
+
+    this.props.fs.getFiles().then(files => this.setState({ files }))
+  }
+
+  createFile(filename: string) {
+    this.props.fs
+      .createFile(filename)
+      .catch(reason => alert('Could not create file: ' + reason))
+      .then(() => this.props.fs.getFiles())
+      .then(files => this.setState({ files }))
   }
 
   save() {
@@ -113,7 +131,7 @@ export default class HeaderComponent extends Component<{ store: YamlStore }, Hea
   render({ store }: { store: YamlStore }) {
     if (!store.observers.includes(this.observer))
       store.observers.push(this.observer)
-    
+
     const disabled = (disabled: boolean, classes: string) => {
       return disabled ? 'disabled ' + classes : classes
     }
@@ -123,8 +141,8 @@ export default class HeaderComponent extends Component<{ store: YamlStore }, Hea
 
     let menu: Menu
     let createFileDialog: Dialog
-    let fileInput: any
-    let restoreTab: () => void
+    let fileInput: HTMLInputElement
+    let acceptButton: HTMLButtonElement
 
     return (
       <TopAppBar onNav={null}>
@@ -156,13 +174,13 @@ export default class HeaderComponent extends Component<{ store: YamlStore }, Hea
 
             <button class={disabled(!this.state.canSave, 'material-icons mdc-top-app-bar__action-item')}
                     label='Save changes' onClick={() => this.save()}>save</button>
-            
+
             <a class={disabled(this.state.canSave || route == '/edit', 'material-icons mdc-top-app-bar__action-item desktop')}
                label='Edit' href='/edit'>edit</a>
-            
+
             <a class={disabled(this.state.canSave || route == '/settings', 'material-icons mdc-top-app-bar__action-item desktop')}
                label='Settings' href='/settings'>settings</a>
-            
+
             <button class={disabled(this.state.canSave, 'material-icons mdc-top-app-bar__action-item mobile')}
                     label='More' onClick={() => menu.MDComponent.open = true}>more_vert</button>
 
@@ -188,40 +206,40 @@ export default class HeaderComponent extends Component<{ store: YamlStore }, Hea
         </TopAppBar.Row>
 
         { route == '/edit' &&
-          <TabBar ref={x => x && x.MDComponent &&
-            x.MDComponent.tabList_[x.MDComponent.tabList_.length - 1].listen('MDCTab:interacted', () => {
-              const activeTabIndex = x.MDComponent.tabList_.findIndex(x => x.active)
-              restoreTab = () => x.MDComponent.activateTab(activeTabIndex)
-              createFileDialog.MDComponent.show()
-
-              setTimeout(() => fileInput.input_.focus(), 200)
-            })
-          }>
-            {['index.yaml'].map(filename =>
-              <TabBar.Tab active>
+          <TabBar>
+            {this.state.files.map((filename, i) =>
+              <TabBar.Tab active={filename == settings.activeFile}
+                          onClick={() => settings.activeFile = filename}>
                 <TabBar.TabLabel>{filename}</TabBar.TabLabel>
               </TabBar.Tab>
             )}
 
-            <TabBar.Tab class='new-tab'>
+            <TabBar.Tab class='new-tab' onClickCapture={e => {
+              e.stopPropagation()
+
+              createFileDialog.MDComponent.show()
+
+              setTimeout(() => fileInput.focus(), 200)
+            }}>
               <TabBar.TabIcon>add</TabBar.TabIcon>
             </TabBar.Tab>
           </TabBar>
         }
 
         <Dialog class='create-dialog' ref={x => createFileDialog = x}
-                onAccept={() => (fileInput.value = '') || alert('Should create a file now')}
-                onCancel={() => (fileInput.value = '') || restoreTab()}>
+                onAccept={() => this.createFile(fileInput.value) as any || (fileInput.value = '')}
+                onCancel={() => (fileInput.value = '')}>
           <Dialog.Body>
-            <TextField outerStyle='width: 100%; margin-bottom: -1em'
-                       outlined label='Filename' pattern='[\w\d]+\.yaml'
-                       helpertextvalidationmsg='This must be a valid .yaml file name.'
-                       ref={x => fileInput = x.MDComponent} />
+            <TextField outlined label='Filename' pattern='[\w\d]+\.yaml'
+                       onInput={() => acceptButton.disabled = (fileInput.value.length == 0 || !fileInput.validity.valid)}
+                       helperText='This must be a valid .yaml file name.'
+                       helperTextValidationMsg
+                       ref={x => x && x.MDComponent && (fileInput = x.MDComponent.input_)} />
           </Dialog.Body>
 
           <Dialog.Footer>
             <Dialog.FooterButton cancel>Cancel</Dialog.FooterButton>
-            <Dialog.FooterButton accept default>Create</Dialog.FooterButton>
+            <Dialog.FooterButton accept default ref={x => acceptButton = x.control} disabled>Create</Dialog.FooterButton>
           </Dialog.Footer>
         </Dialog>
       </TopAppBar>

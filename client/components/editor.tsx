@@ -5,6 +5,7 @@ import CodeMirror from 'codemirror/lib/codemirror'
 import 'codemirror/lib/codemirror.css'
 import 'codemirror/mode/yaml/yaml'
 
+import { settings } from '../common/settings'
 import { DefaultObserver, Node }     from '../../shared'
 import { YamlStore, YamlStoreState } from '../../shared/yaml'
 
@@ -18,21 +19,21 @@ const editor = CodeMirror(document.createElement('div'), {
   lineNumbers: false
 })
 
-export const createEditorObserver = (filename: string, store: YamlStore) => new DefaultObserver({
+export const createEditorObserver = (store: YamlStore) => new DefaultObserver({
   saved: () => {
-    const [file] = store.files.filter(x => x.filename == filename)
+    const [file] = store.files.filter(x => x.filename == settings.activeFile)
 
     if (file)
       editor.setValue(file.contents)
-  
+
     editor.setOption('readOnly', false)
   },
   loaded: () => {
-    const [file] = store.files.filter(x => x.filename == filename)
+    const [file] = store.files.filter(x => x.filename == settings.activeFile)
 
     if (file)
       editor.setValue(file.contents)
-   
+
     editor.setOption('readOnly', false)
   },
 
@@ -44,12 +45,12 @@ export const createEditorObserver = (filename: string, store: YamlStore) => new 
   },
 
   inserted: (node: Node<YamlStoreState>) => {
-    if (node.syntax.kind == 'file' && node.syntax.filename == filename)
+    if (node.syntax.kind == 'file' && node.syntax.filename == settings.activeFile)
       editor.setValue(node.syntax.contents)
   }
 })
 
-export default class EditorComponent extends Component<{ filename?: string, store: YamlStore }, { changed: boolean }> {
+export default class EditorComponent extends Component<{ store: YamlStore }, { changed: boolean }> {
   shouldComponentUpdate() {
     return false
   }
@@ -62,24 +63,36 @@ export default class EditorComponent extends Component<{ filename?: string, stor
   componentWillUnmount() {
     this.base.firstChild.remove()
 
-    if (this.state.changed) {
+    if (this.state.changed)
       this.props.store.load('index.yaml')
-    }
   }
 
   render({ store }: { store: YamlStore }) {
     editor.on('change', () => {
-      const [file] = store.files.filter(x => x.filename == this.props.filename)
+      const [file] = store.files.filter(x => x.filename == settings.activeFile)
 
-      if (!file)
+      if (!file) {
+        store.fs.write(settings.activeFile, editor.getValue())
         return
+      }
 
-      file.isDirty = true
+      file.isDirty = false
       file.contents = editor.getValue()
 
       store.fs.write(file.filename, file.contents)
 
       this.setState({ changed: true })
+    })
+
+    settings.listen('activeFile', activeFile => {
+      const [file] = store.files.filter(x => x.filename == activeFile)
+
+      if (!file) {
+        store.fs.read(activeFile).then(editor.setValue.bind(editor))
+        return
+      }
+
+      editor.setValue(file.contents)
     })
 
     return <div class='editor-root' />

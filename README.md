@@ -2,18 +2,52 @@ Paperplane
 ==========
 
 Paperplane is an open-source [Workflowy](https://workflowy.com) clone that aims to
-be customisable, and to work everywhere. It is highly inspired by [Vimflowy](https://github.com/WuTheFWasThat/vimflowy),
-but it does support mobile devices.
-
-- For one, notes are stored in YAML files with as few metadata as possible. Thus,
-  no specific editor is needed to interact with Paperplane.
-- Also, notes are written in Markdown.
+be customisable, and to work everywhere. It is highly inspired by
+[Vimflowy](https://github.com/WuTheFWasThat/vimflowy), but it does support mobile devices.
 
 
-## Server
-The server is written in Rust, and is completely optional. It can be used to set
-up webhooks or to store notes externally.
+## Features
+- Offline support.
+- Markdown support.
+- Designed for both desktop, and mobile.
+- Notes and their metadata are stored in human-editable YAML.
+- Built-in YAML editor on the web.
+- Note searching, with optional caching and fuzzy-finding.
 
-## Client
-The client is a PWA built with Vue, which means that it can be used offline on
-all modern devices.
+
+## Roadmap
+- Add custom themes.
+- Add custom keybindings.
+- Add Vim keybindings.
+- Create an optional backend that can take care of calling webhooks and storing data.
+- Add undo / redo.
+
+
+## Format
+
+#### `index.yaml`
+
+```yaml
+notes:
+- text: Notes are stored in `.yaml` files.
+- text: >-
+          All they need to be supported by Paperplane
+          are the `text` field, and an optional `children` field.
+  children:
+  - text: Obviously, children can be
+    children:
+    - text: arbitrarily
+      children:
+      - text: nested
+- When there are no children, there is no need for an object.
+- text: If you want, you can even include other files!
+- !!include included.yaml
+```
+
+#### `included.yaml`
+
+```yaml
+text: Included files can also have a `text` field.
+children:
+- But what we really want are sub notes, right?
+```

@@ -1,5 +1,5 @@
 notes:
-- text: hello world
+- text: hello **world**
 - text: foo
   children:
   - text: bar

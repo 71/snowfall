@@ -8,6 +8,8 @@ export interface FileSystem {
   write(filename: string, contents: string): Promise<void>
 
   getFiles(): Promise<string[]>
+
+  createFile(filename: string): Promise<void>
 }
 
 export class LocalStorageFileSystem implements FileSystem {
@@ -32,6 +34,15 @@ export class LocalStorageFileSystem implements FileSystem {
     }
 
     return Promise.resolve(files)
+  }
+
+  createFile(filename: string) {
+    if (localStorage.getItem(filename) != null)
+      return Promise.reject('File already exists.')
+
+    localStorage.setItem(filename, '')
+
+    return Promise.resolve()
   }
 }
 
@@ -194,7 +205,9 @@ export class YamlStore implements Store<YamlStoreState> {
   }
 
 
-  async load(filename: string) {
+  async load(filename: string): Promise<string[]> {
+    const errors: string[] = []
+
     this.files.length = 0
     this.root = await BaseNode.createRoot<YamlStoreState>(this.observers)
 
@@ -232,11 +245,25 @@ export class YamlStore implements Store<YamlStoreState> {
           if (typeof item.__include__ == 'string')
           {
             filename = item.__include__
+
+            if (filename == currentFile.filename) {
+              errors.push(`Cannot recursively import file ${filename}.`)
+              continue
+            }
+
             contents = await this.fs.read(filename)
+
+            if (!contents) {
+              errors.push(`File ${filename} does not exist.`)
+              continue
+            }
+
             document = yaml.parseDocument(contents, { tags: [ includeTag ] })
 
-            if (!document.contents || document.contents.type != 'MAP')
-              throw ''
+            if (!document.contents || document.contents.type != 'MAP') {
+              errors.push(`File ${filename} has an invalid content.`)
+              continue
+            }
 
             node = document.contents
             item = node.toJSON()
@@ -254,8 +281,10 @@ export class YamlStore implements Store<YamlStoreState> {
             }
           }
 
-          if (!text)
-            throw ''
+          if (!text) {
+            errors.push(`A note does not have any text.`)
+            continue
+          }
 
           const child = await parent.createChild(i, text, item, child => {
             if (filename) {
@@ -278,18 +307,23 @@ export class YamlStore implements Store<YamlStoreState> {
         }
         else
         {
-          throw 'Invalid YAML document.'
+          errors.push(`Invalid YAML document.`)
+          continue
         }
       }
     }
 
-    if (!document.contents || document.contents.type != 'MAP')
-      throw ''
+    if (!document.contents || document.contents.type != 'MAP') {
+      errors.push(`Invalid YAML document.`)
+      return errors
+    }
 
     const items = NodeHelpers.getValue(document.contents, k => k == 'items' || k == 'notes')
 
-    if (!items || items.type != 'SEQ')
-      throw ''
+    if (!items || items.type != 'SEQ') {
+      errors.push(`Invalid YAML document.`)
+      return errors
+    }
 
     this.root.syntax = root
 
@@ -303,6 +337,8 @@ export class YamlStore implements Store<YamlStoreState> {
       if (typeof obs.loaded == 'function')
         await obs.loaded()
     }
+
+    return errors
   }
 
 

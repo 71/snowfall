@@ -137,29 +137,29 @@ export class BaseNode<T> {
 
   /**
    * Updates a property of the given node.
-   * 
+   *
    * If `newValue` is `undefined`, the property is removed.
    */
   updateProperty(propertyKey: string, newValue: any) {
     if (this.data[propertyKey] === newValue)
       return
-    
+
     const oldValue = this.data[propertyKey]
 
     if (newValue === undefined)
       delete this.data[propertyKey]
     else
       this.data[propertyKey] = newValue
-    
+
     if (propertyKey == 'text')
       this._text = newValue
-    
+
     return this.notify(store => store.propertyUpdated(this as any, propertyKey, newValue, oldValue))
   }
 
   /**
    * Increases the depth of a node.
-   * 
+   *
    * If it is the first child of another node, nothing will be done.
   */
   increaseDepth() {
@@ -181,7 +181,7 @@ export class BaseNode<T> {
 
   /**
    * Decreases the depth of a node.
-   * 
+   *
    * If its depth is already 0, nothing will be done.
    */
   decreaseDepth() {
@@ -266,7 +266,7 @@ export class DefaultObserver<T = any> implements StoreObserver<T> {
   removed(node: Node<T>, oldParent: Node<T>, oldIndex: number): void | Promise<void> {
     if (this.callbacks.removed)
       return this.callbacks.removed(node, oldParent, oldIndex)
-  } 
+  }
   moved(node: Node<T>, oldParent: Node<T>, oldIndex: number): void | Promise<void> {
     if (this.callbacks.moved)
       return this.callbacks.moved(node, oldParent, oldIndex)
@@ -296,7 +296,7 @@ export class DefaultObserver<T = any> implements StoreObserver<T> {
 
 /**
  * Defines the backing store of a tree.
- * 
+ *
  * Depending on the situation, the store will be very different:
  * - On the server, it is kept in memory, and syncs changes to the underlying
  *   YAML files.

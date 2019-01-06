@@ -24,6 +24,11 @@ if (navigator.serviceWorker) {
     .catch(err => console.warn('Service worker could not be registered.', err))
 }
 
+if (!localStorage.getItem('index.yaml')) {
+  // @ts-ignore
+  localStorage.setItem('index.yaml', require('fs').readFileSync(__dirname + '/common/default.yaml', 'utf8'))
+}
+
 
 (async function() {
   // Set up storage...
@@ -32,7 +37,8 @@ if (navigator.serviceWorker) {
   if (settings.cachePlainText)
     observers.push(new (await import('./helpers/plainTextCacher')).default())
 
-  const store = new YamlStore(new LocalStorageFileSystem(), observers)
+  const fs = new LocalStorageFileSystem()
+  const store = new YamlStore(fs, observers)
 
   // Set up view...
   const appElement = document.querySelector('#app')
@@ -58,16 +64,12 @@ if (navigator.serviceWorker) {
     </Router>
   )
 
-  render(<Header ref={x => header = x} store={store} />, headerElement)
+  render(<Header ref={x => header = x} store={store} fs={fs} />, headerElement)
   render(<Main />, appElement)
 
 
   // Load data...
-  if (!localStorage.getItem('index.yaml'))
-    // @ts-ignore
-    localStorage.setItem('index.yaml', require('fs').readFileSync(__dirname + '/common/default.yaml', 'utf8'))
-
-  observers.push(tree, createEditorObserver('index.yaml', store))
+  observers.push(tree, createEditorObserver(store))
 
   await store.load('index.yaml')
 })()
