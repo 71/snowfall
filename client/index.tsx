@@ -6,6 +6,8 @@ import 'material-icons/iconfont/material-icons.css'
 import 'typeface-roboto-mono'
 import 'typeface-sarabun'
 
+import 'preact-material-components/style.css'
+
 import { settings } from './common/settings'
 
 import { LocalStorageFileSystem, YamlStore } from '../shared/yaml'

@@ -73,12 +73,18 @@ export class Settings {
    * that enables the user to edit their list.
    */
   isMainPage(page: string): boolean {
-    return page == '/settings' || (this.enableEditor && page == '/edit')
+    return !(page == '/settings' || (this.enableEditor && page == '/edit'))
   }
 }
 
 const notifySettings = (settings: Settings) => new Proxy(settings, {
   set: (settings, key, value) => {
+    if (key == 'listeners') {
+      // @ts-ignore
+      settings['listeners'] = value
+      return true
+    }
+
     if (typeof key != 'string' || key == 'all' || settings[key] === undefined)
       return false
 

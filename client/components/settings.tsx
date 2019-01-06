@@ -6,12 +6,6 @@ import Switch     from 'preact-material-components/Switch'
 import TextField  from 'preact-material-components/TextField'
 import Typography from 'preact-material-components/Typography'
 
-import 'preact-material-components/Card/style.css'
-import 'preact-material-components/Slider/style.css'
-import 'preact-material-components/Switch/style.css'
-import 'preact-material-components/TextField/style.css'
-import 'preact-material-components/Typography/style.css'
-
 import { settings, Settings } from '../common/settings'
 
 import '../styles/settings.styl'

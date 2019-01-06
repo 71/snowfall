@@ -7,18 +7,6 @@ import TabBar    from 'preact-material-components/TabBar'
 import TextField from 'preact-material-components/TextField'
 import TopAppBar from 'preact-material-components/TopAppBar'
 
-import 'preact-material-components/Button/style.css'
-import 'preact-material-components/Dialog/style.css'
-import 'preact-material-components/List/style.css'
-import 'preact-material-components/Menu/style.css'
-import 'preact-material-components/MenuSurface/style.css'
-import 'preact-material-components/Tab/style.css'
-import 'preact-material-components/TabBar/style.css'
-import 'preact-material-components/TabIndicator/style.css'
-import 'preact-material-components/TabScroller/style.css'
-import 'preact-material-components/TextField/style.css'
-import 'preact-material-components/TopAppBar/style.css'
-
 import { settings }              from '../common/settings'
 import { DefaultObserver, Node } from '../../shared'
 import { YamlStore, YamlStoreState, FileSystem } from '../../shared/yaml'
@@ -137,7 +125,7 @@ export default class HeaderComponent extends Component<{ store: YamlStore, fs: F
     }
 
     const route = this.state.route
-    const inHomeRoute = !['/edit', '/settings'].includes(route)
+    const inHomeRoute = settings.isMainPage(route)
 
     let menu: Menu
     let createFileDialog: Dialog
@@ -195,9 +183,11 @@ export default class HeaderComponent extends Component<{ store: YamlStore, fs: F
 
                 <li class="mdc-list-divider" role="separator"></li>
 
-                <Menu.Item disabled={this.state.canSave || route == '/edit'}>
-                  <a href='/edit'>Editor</a>
-                </Menu.Item>
+                { settings.enableEditor &&
+                  <Menu.Item disabled={this.state.canSave || route == '/edit'}>
+                    <a href='/edit'>Editor</a>
+                  </Menu.Item>
+                }
                 <Menu.Item disabled={this.state.canSave || route == '/settings'}>
                   <a href='/settings'>Settings</a>
                 </Menu.Item>
@@ -207,7 +197,7 @@ export default class HeaderComponent extends Component<{ store: YamlStore, fs: F
 
         </TopAppBar.Row>
 
-        { route == '/edit' &&
+        { settings.enableEditor && route == '/edit' &&
           <TabBar>
             {this.state.files.map((filename, i) =>
               <TabBar.Tab active={filename == settings.activeFile}

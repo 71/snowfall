@@ -1,10 +1,6 @@
 import { h, render } from 'preact'
 import { route }     from 'preact-router'
 
-import 'preact-material-components/List/style.css'
-import 'preact-material-components/Menu/style.css'
-import 'preact-material-components/MenuSurface/style.css'
-
 import { HtmlNodeState, Tree } from './tree'
 import { Node }                from '../../shared'
 

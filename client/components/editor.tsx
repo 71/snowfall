@@ -6,7 +6,7 @@ import 'codemirror/lib/codemirror.css'
 import 'codemirror/mode/yaml/yaml'
 import 'codemirror/theme/material.css'
 
-import { settings } from '../common/settings'
+import { settings }                  from '../common/settings'
 import { DefaultObserver, Node }     from '../../shared'
 import { YamlStore, YamlStoreState } from '../../shared/yaml'
 

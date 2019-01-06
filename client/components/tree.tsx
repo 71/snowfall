@@ -241,7 +241,7 @@ export class Tree implements NodeObserver<HtmlNodeState> {
   handleRouteChange({ url }: { url: string }) {
     this.url = url
 
-    if (this.rootNode == null || url == '/edit' || url == '/settings')
+    if (this.rootNode == null || !settings.isMainPage(url))
       return
 
     const node = this.rootNode.root.resolveWithStringPath(url)
