@@ -13,8 +13,6 @@ import { openMenu }           from './ContextMenu'
 
 import '../styles/tree.styl'
 
-const opencolor = require('open-color/open-color.json')
-
 
 // Markdown renderer
 const md = new MarkdownIt({
@@ -216,6 +214,7 @@ export class Tree implements NodeObserver<HtmlNodeState> {
   public activeNode: Node<HtmlNodeState>
 
   public rootElement = document.createElement('div')
+  public rootNodeChanged: (Node<HtmlNodeState>) => void = null
 
   constructor() {
     this.cm = createCodeMirror(this)
@@ -262,23 +261,16 @@ export class Tree implements NodeObserver<HtmlNodeState> {
     this.rootNode = node
     this.rootElement.appendChild(node.wrapperElement)
 
+    if (this.rootNodeChanged != null)
+      this.rootNodeChanged(node)
+
     if (!oldRootNode.isRoot)
       this.reinsert(oldRootNode)
   }
 
 
   private updateStyle(node: Node<HtmlNodeState>) {
-    const accent: string[10] = opencolor[Object.keys(opencolor)[3 + (node.depth % 12)]]
-
-    if (settings.darkMode) {
-      node.wrapperElement.style.setProperty('--accent'    , accent[5])
-      node.wrapperElement.style.setProperty('--dim-accent', accent[7])
-      node.wrapperElement.style.setProperty('--bg-accent' , accent[9])
-    } else {
-      node.wrapperElement.style.setProperty('--accent'    , accent[6])
-      node.wrapperElement.style.setProperty('--dim-accent', accent[2])
-      node.wrapperElement.style.setProperty('--bg-accent' , accent[0])
-    }
+    settings.setElementAccent(node.wrapperElement, node.depth)
   }
 
   private updateMarkdownRender(node: Node<HtmlNodeState>) {
@@ -313,8 +305,12 @@ export class Tree implements NodeObserver<HtmlNodeState> {
 
 
   inserted(node: Node<HtmlNodeState>) {
-    if (node.isRoot && this.rootNode == null)
+    if (node.isRoot && this.rootNode == null) {
       this.rootNode = node
+
+      if (this.rootNodeChanged != null)
+        this.rootNodeChanged(node)
+    }
 
     if (node == this.rootNode) {
       node.wrapperElement = hh('div', { class: 'node-wrapper' },
@@ -504,6 +500,12 @@ export class Tree implements NodeObserver<HtmlNodeState> {
       .then(child => this.focus(child, null))
   }
 
+  insertNewChildAtEnd(node: Node<HtmlNodeState>) {
+    node
+      .createChild(node.children.length)
+      .then(child => this.focus(child, null))
+  }
+
   insertNewSibling(node: Node<HtmlNodeState>) {
     node.parent
       .createChild(node.index + 1)
@@ -554,16 +556,30 @@ export class Tree implements NodeObserver<HtmlNodeState> {
 }
 
 export default class TreeComponent extends Component<{ tree: Tree }> {
+  private addElement: HTMLSvgElement = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+
   shouldComponentUpdate() {
     return false
   }
 
   componentDidMount() {
+    this.addElement.setAttribute('viewBox', '0 0 24 24')
+    this.addElement.classList.add('node-add')
+    this.addElement.innerHTML = `<path style="fill: var(--accent)" d="M17,13H13V17H11V13H7V11H11V7H13V11H17M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z" />`
+
+    this.addElement.addEventListener('click', () => {
+      this.props.tree.insertNewChildAtEnd(this.props.tree.rootNode)
+    })
+
+    this.props.tree.rootNodeChanged = node => settings.setElementAccent(this.addElement, node.depth + 1)
+
     this.base.appendChild(this.props.tree.rootElement)
+    this.base.appendChild(this.addElement)
   }
 
   componentWillUnmount() {
-    this.base.firstChild.remove()
+    while (this.base.firstChild)
+      this.base.firstChild.remove()
   }
 
   render() {

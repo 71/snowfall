@@ -2,6 +2,8 @@ import { Component } from 'preact'
 
 import { FileSystem } from '../../shared/yaml'
 
+const opencolor = require('open-color/open-color.json')
+
 
 export class Settings {
   private readonly listeners: {
@@ -13,8 +15,7 @@ export class Settings {
   public autosave = false
   public autosaveInterval = 0
 
-  public backgroundColor = '#fff'
-  public foregroundColor = '#000'
+  public autoDarkMode = false
   public darkMode = false
 
   public useFuzzySearch = false
@@ -88,6 +89,23 @@ export class Settings {
       return new (await import('./localStorage')).LocalStorageFileSystem()
     else if (this.storage == 'remoteStorage')
       return new (await import('./remoteStorage')).RemoteStorageFileSystem()
+  }
+
+  /**
+   * Sets the accent color of the given element, given its depth.
+   */
+  setElementAccent(element: HTMLElement, depth: number) {
+    const accent: string[10] = opencolor[Object.keys(opencolor)[3 + (depth % 12)]]
+
+    if (this.darkMode) {
+      element.style.setProperty('--accent'    , accent[5])
+      element.style.setProperty('--dim-accent', accent[7])
+      element.style.setProperty('--bg-accent' , accent[9])
+    } else {
+      element.style.setProperty('--accent'    , accent[6])
+      element.style.setProperty('--dim-accent', accent[2])
+      element.style.setProperty('--bg-accent' , accent[0])
+    }
   }
 }
 

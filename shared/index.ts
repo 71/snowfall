@@ -19,6 +19,11 @@ export class BaseNode<T> {
     this._data = data
   }
 
+  /**
+   * Creates a new root node, given a list of its `NodeObserver`s.
+   *
+   * The list is not copied, so new observers can later be added or removed.
+   */
   static createRoot<T>(observers: NodeObserver<any>[], ids: { [id: string]: Node<T> } = {}) {
     const root = new BaseNode<T>(observers, null, {}) as any as Node<T>
     root._ids = ids
@@ -481,7 +486,7 @@ export interface Store<T> extends NodeObserver<T> {
  * A queue that saves all of its changes in an array, in the order in which they
  * are performed.
  *
- * This store can be used to send changes to another instance of Paperplane for
+ * This store can be used to send changes to another instance of Snowfall for
  * synchronization purposes.
  */
 export class ChangeQueue implements NodeObserver<{}> {

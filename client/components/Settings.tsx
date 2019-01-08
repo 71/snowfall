@@ -61,7 +61,7 @@ export default class SettingsComponent extends Component<{}, Settings> {
           </div>
 
           <div class='card-header'>
-            <Typography subtitle1>Enable editor</Typography>
+            <Typography subtitle1>Enable text editor</Typography>
             <Switch class='right-switch'
                     checked={this.state.enableEditor}
                     onChange={e => this.setState({ enableEditor: (e.target as HTMLInputElement).checked })} />
@@ -80,17 +80,15 @@ export default class SettingsComponent extends Component<{}, Settings> {
                     onChange={e => this.setState({ darkMode: (e.target as HTMLInputElement).checked })} />
           </div>
 
-          <div style='display: flex; flex-wrap: wrap; justify-content: space-between; max-width: 470px'>
-            <TextField outlined type='text' label='Background color'
-                       value={this.state.backgroundColor}
-                       onChange={e => this.setState({ backgroundColor: (e.target as HTMLInputElement).value })} />
-
-            <div style='height: 2.5em; margin: 1em' class='mobile' />
-
-            <TextField outlined type='text' label='Foreground color'
-                       value={this.state.foregroundColor}
-                       onChange={e => this.setState({ foregroundColor: (e.target as HTMLInputElement).value })} />
+          <div class='card-header'>
+            <Typography subtitle1>Automatic dark mode</Typography>
+            <Switch class='right-switch'
+                    disabled={this.state.darkMode}
+                    checked={this.state.autoDarkMode}
+                    onChange={e => this.setState({ autoDarkMode: (e.target as HTMLInputElement).checked })} />
+            <br />
           </div>
+          <Typography style='margin-top: -.5em; opacity: .9' subtitle2>Enables dark mode between 19:00 and 7:00.</Typography>
         </Card>
 
         <Card>
@@ -113,7 +111,7 @@ export default class SettingsComponent extends Component<{}, Settings> {
                     onChange={e => this.setState({ cachePlainText: (e.target as HTMLInputElement).checked })} />
             <br />
           </div>
-          <Typography style='margin-top: -.5em; opacity: .9' subtitle2>Consumes more memory, but improves search speed</Typography>
+          <Typography style='margin-top: -.5em; opacity: .9' subtitle2>Consumes more memory, but improves search speed.</Typography>
         </Card>
 
         <Card>

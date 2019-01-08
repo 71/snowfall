@@ -1,8 +1,8 @@
 {
-  "name": "paperplane",
+  "name": "snowfall",
   "version": "0.1.0",
   "main": "index.js",
-  "repository": "git@github.com:71/paperplane.git",
+  "repository": "git@github.com:71/snowfall.git",
   "author": "Gregoire Geis <git@gregoirege.is>",
   "license": "MIT",
   "private": false,

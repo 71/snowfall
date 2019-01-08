@@ -1,7 +1,7 @@
-Paperplane
+Snowfall
 ==========
 
-Paperplane is an open-source [Workflowy](https://workflowy.com) clone that aims to
+Snowfall is an open-source [Workflowy](https://workflowy.com) clone that aims to
 be customisable, and to work everywhere. It is highly inspired by
 [Vimflowy](https://github.com/WuTheFWasThat/vimflowy), but it does support mobile devices.
 
@@ -16,7 +16,6 @@ be customisable, and to work everywhere. It is highly inspired by
 
 
 ## Roadmap
-- Add custom themes.
 - Add custom keybindings.
 - Add Vim keybindings.
 - Create an optional backend that can take care of calling webhooks and storing data.
@@ -31,8 +30,8 @@ be customisable, and to work everywhere. It is highly inspired by
 notes:
 - text: Notes are stored in `.yaml` files.
 - text: >-
-          All they need to be supported by Paperplane
-          are the `text` field, and an optional `children` field.
+    All they need to be supported by Snowfall
+    are the `text` field, and an optional `children` field.
   children:
   - text: Obviously, children can be
     children:

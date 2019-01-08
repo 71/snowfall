@@ -46,7 +46,7 @@ if (navigator.serviceWorker) {
   const appElement = document.querySelector('#app')
   const headerElement = document.querySelector('#header')
 
-  if (settings.darkMode)
+  if (settings.darkMode || (settings.autoDarkMode && (new Date().getHours() > 18 || new Date().getHours() < 8)))
     document.body.classList.add('dark')
 
   // Clean up HTML from previous sessions...

@@ -109,9 +109,25 @@ export class YamlFileNode extends YamlFileOrChildNode {
 export class YamlChildNode extends YamlFileOrChildNode {
   public kind: 'child' = 'child'
 
-  constructor(public node: yaml.ast.MapBase | yaml.ast.AstNode, public file: YamlFileNode) {
+  constructor(
+    public node: yaml.ast.MapBase | yaml.ast.AstNode,
+    public textKind: 'plain' | 'property' | 'included',
+    public file: YamlFileNode,
+    public includedFile?: IncludedFile
+  ) {
     super(node)
   }
+}
+
+export class IncludedFile {
+  public kind: 'included' = 'included'
+  public isDirty: boolean = true
+  public nextContents: string
+
+  constructor(
+    public filename: string,
+    public contents: string
+  ) {}
 }
 
 export type YamlStoreState = { syntax: YamlFileNode | YamlChildNode }
@@ -124,7 +140,7 @@ class IncludeNode implements yaml.ast.Node {
   range: [number, number]
   tag: string
 
-  type = 'INCLUDE'
+  type: 'INCLUDE' = 'INCLUDE'
 
   constructor(public filename: string) {}
 
@@ -158,7 +174,7 @@ const includeTag: yaml.Tag = {
 export class YamlStore implements Store<YamlStoreState> {
   private saveTimeout: NodeJS.Timeout
 
-  public files: YamlFileNode[] = []
+  public files: (YamlFileNode | IncludedFile)[] = []
   public root: Node<YamlStoreState>
 
   constructor(
@@ -199,7 +215,7 @@ export class YamlStore implements Store<YamlStoreState> {
         if (typeof item == 'string')
         {
           await parent.createChild(i, item, null, child => {
-            child.syntax = new YamlChildNode(node, currentFile)
+            child.syntax = new YamlChildNode(node, 'plain', currentFile)
           })
         }
         else if (typeof item == 'object')
@@ -217,9 +233,14 @@ export class YamlStore implements Store<YamlStoreState> {
               continue
             }
 
+            if (!filename.endsWith('.yaml') && !filename.endsWith('.yml')) {
+              errors.push(`File ${filename} is not a YAML file.`)
+              continue
+            }
+
             contents = await this.fs.read(filename)
 
-            if (!contents) {
+            if (contents == null) {
               errors.push(`File ${filename} does not exist.`)
               continue
             }
@@ -235,20 +256,37 @@ export class YamlStore implements Store<YamlStoreState> {
             item = node.toJSON()
           }
 
-          const text = item['text']
+          let text = item['text']
 
-          if (typeof text != 'string') {
+          if (typeof text.__include__ == 'string') {
+            // Text is included from other file
+            filename = text.__include__
+            text     = await this.fs.read(filename)
+
+            if (text == null) {
+              errors.push(`File ${filename} does not exist.`)
+              continue
+            }
+          } else if (typeof text != 'string') {
             errors.push(`A note does not have any text.`)
             continue
           }
 
           const child = await parent.createChild(i, text, item, child => {
-            if (filename) {
+            if (document != null) {
+              // Own file
               child.syntax = new YamlFileNode(filename, document, contents)
 
               this.files.push(child.syntax)
+            } else if (filename != null) {
+              // Child, but with text imported from other file
+              const file = new IncludedFile(filename, text)
+
+              child.syntax = new YamlChildNode(node, 'included', currentFile, file)
+              this.files.push(file)
             } else {
-              child.syntax = new YamlChildNode(node, currentFile)
+              // Regular child
+              child.syntax = new YamlChildNode(node, 'property', currentFile)
             }
           })
 
@@ -320,11 +358,13 @@ export class YamlStore implements Store<YamlStoreState> {
       if (!file.isDirty)
         continue
 
-      const str = file.document.toString()
+      if (file.kind == 'file')
+        file.contents = file.document.toString()
+      else
+        file.contents = file.nextContents
 
-      await this.fs.write(file.filename, str)
+      await this.fs.write(file.filename, file.contents)
 
-      file.contents = str
       file.isDirty = false
     }
 
@@ -351,10 +391,11 @@ export class YamlStore implements Store<YamlStoreState> {
     }, throttle)
   }
 
-  private markDirty(node: Node<YamlStoreState>) {
-    node.syntax.file.isDirty = true
-
-    this.files.forEach(file => console.log(file.document.toString()))
+  private markDirty(node: Node<YamlStoreState> | IncludedFile) {
+    if (node instanceof BaseNode)
+      node.syntax.file.isDirty = true
+    else
+      node.isDirty = true
 
     this.scheduleSave()
   }
@@ -365,7 +406,7 @@ export class YamlStore implements Store<YamlStoreState> {
       // already initialized (or root), we don't care
       return
 
-    node.syntax = new YamlChildNode(yaml.createNode(node.dataOrText || { text: node.text }) as any, node.parent.syntax.file)
+    node.syntax = new YamlChildNode(yaml.createNode(node.dataOrText) as any, typeof node.dataOrText == 'string' ? 'plain' : 'property', node.parent.syntax.file)
     node.parent.syntax.seq.items.splice(node.index, 0, <yaml.ast.Map>node.syntax.map)
 
     this.markDirty(node)
@@ -378,8 +419,23 @@ export class YamlStore implements Store<YamlStoreState> {
     this.markDirty(oldParent)
   }
 
-  propertyUpdated(node: Node<YamlStoreState>, propertyKey: string, newValue: any, oldValue: any) {
-    NodeHelpers.setValue(node.syntax.map, propertyKey, yaml.createNode(newValue) as any)
+  async propertyUpdated(node: Node<YamlStoreState>, propertyKey: string, newValue: any) {
+    if (propertyKey == 'text' && node.syntax.kind == 'child') {
+      if (node.syntax.textKind == 'plain') {
+        // Updating text only, no need to create a new map
+        node.syntax.node = yaml.createNode(newValue) as yaml.ast.ScalarNode
+      } else if (node.syntax.textKind == 'included') {
+        // Edited text that comes from another file, so we write to the file itself
+        node.syntax.node = yaml.createNode(newValue) as yaml.ast.ScalarNode
+        node.syntax.includedFile.nextContents = newValue
+
+        this.markDirty(node.syntax.includedFile)
+      } else {
+        NodeHelpers.setValue(node.syntax.map, 'text', yaml.createNode(newValue) as any)
+      }
+    } else {
+      NodeHelpers.setValue(node.syntax.map, propertyKey, yaml.createNode(newValue) as any)
+    }
 
     this.markDirty(node)
   }

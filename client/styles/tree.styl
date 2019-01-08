@@ -18,6 +18,20 @@
     padding-left: 0
     margin-left: 0
 
+.node-add
+  cursor: pointer
+  width: 18px
+  height: 18px
+  margin-left: 10px
+  transition: transform .2s, opacity .2s
+  opacity: 0
+
+  &:hover
+    transform: scale(1.3)
+    opacity: .9!important
+  /#app:hover &
+    opacity: .3
+
 
 .node-wrapper
   position: relative
@@ -86,6 +100,10 @@
     background: var(--accent)
 
     margin: $inner-diameter
+
+    /.collapsed&
+      border: 2px solid var(--accent)
+      background: transparent
 
 
   // Children

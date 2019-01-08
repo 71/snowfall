@@ -6,12 +6,12 @@ import RemoteStorage  from 'remotestoragejs'
 // See: https://remotestoragejs.readthedocs.io/en/latest/getting-started/initialize-and-configure.html
 export const remoteStorage = new RemoteStorage()
 
-remoteStorage.access.claim('paperplane', 'rw')
-remoteStorage.caching.enable('/paperplane/')
+remoteStorage.access.claim('snowfall', 'rw')
+remoteStorage.caching.enable('/snowfall/')
 
 
 export class RemoteStorageFileSystem implements FileSystem {
-  client = remoteStorage.scope('/paperplane/')
+  client = remoteStorage.scope('/snowfall/')
 
   read(filename: string): Promise<string> {
     return this.client.getFile(filename).then(file => file.data)
