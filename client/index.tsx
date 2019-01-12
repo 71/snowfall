@@ -10,9 +10,10 @@ import 'preact-material-components/style.css'
 
 import { settings } from './common/settings'
 
-import { YamlStore } from '../shared/yaml'
+import { NodeObservers } from '../shared'
+import { YamlStore }     from '../shared/yaml'
 
-import Header                        from './components/Header'
+import { HeaderComponent as Header } from './components/Header'
 import Tree, { Tree as DomObserver } from './components/Tree'
 
 
@@ -28,10 +29,19 @@ if (navigator.serviceWorker) {
 
 (async function() {
   // Set up storage...
-  const observers = []
+  const observers: NodeObservers<any> = {}
 
-  if (settings.cachePlainText)
-    observers.push(new (await import('./helpers/plainTextCacher')).default())
+  if (settings.cachePlainText) {
+    const { PlainTextCacher, key } = await import('./helpers/plainTextCacher')
+
+    observers[key] = new PlainTextCacher()
+  }
+
+  if (settings.historySize > 0) {
+    const { HistoryManager } = await import('./helpers/historyManager')
+
+    observers[HistoryManager.key] = new HistoryManager()
+  }
 
   const fs = await settings.getFileSystem()
   const files = await fs.getFiles()
@@ -63,12 +73,12 @@ if (navigator.serviceWorker) {
 
       { settings.enableEditor
       ? <AsyncRoute path='/edit'
-                    getComponent={() => import('./components/Editor').then(module => module.default)}
+                    getComponent={() => import('./components/Editor').then(module => module.EditorComponent)}
                     store={store} filename='index.yaml' />
       : <div path='/this-will-never-match-hopefully' />
       }
       <AsyncRoute path='/settings'
-                  getComponent={() => import('./components/Settings').then(module => module.default)} />
+                  getComponent={() => import('./components/Settings').then(module => module.SettingsComponent)} />
     </Router>
   )
 
@@ -77,10 +87,13 @@ if (navigator.serviceWorker) {
 
 
   // Load data...
-  observers.push(tree)
+  observers['treeComponent'] = tree
 
-  if (settings.enableEditor)
-    observers.push(require('./components/Editor').createEditorObserver(store))
+  if (settings.enableEditor) {
+    const { createEditorObserver, key } = await import('./components/Editor')
+
+    observers[key] = createEditorObserver(store)
+  }
 
   await store.load('index.yaml')
 })()

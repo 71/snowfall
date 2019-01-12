@@ -14,7 +14,7 @@ import '../styles/settings.styl'
 import ConnectRemoteStorage from './ConnectRemoteStorage'
 
 
-export default class SettingsComponent extends Component<{}, Settings> {
+export class SettingsComponent extends Component<{}, Settings> {
   componentWillMount() {
     this.setState(settings)
   }

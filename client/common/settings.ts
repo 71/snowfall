@@ -1,15 +1,12 @@
 import { Component } from 'preact'
 
+import { notifyOnPropertyChange, PropertyChangedNotifier } from '../helpers/propertyChangedNotifier'
 import { FileSystem } from '../../shared/yaml'
 
 const opencolor = require('open-color/open-color.json')
 
 
-export class Settings {
-  private readonly listeners: {
-    [key in keyof this]?: ((value: this[key]) => void)[]
-  } = {}
-
+export class Settings extends PropertyChangedNotifier {
   public get all() { return this }
 
   public autosave = false
@@ -27,25 +24,13 @@ export class Settings {
 
   public useVimMode = false
 
+  public hideCompleted = false
+
   public historySize = 100
 
   public activeFile = 'index.yaml'
 
   public storage: 'localStorage' | 'remoteStorage' = 'localStorage'
-
-  notifyPropertyChanged<P extends keyof this>(prop: P, value: this[P]) {
-    for (const listener of this.listeners[prop] || [])
-      listener(value)
-    for (const listener of this.listeners['all'] || [])
-      listener(this)
-  }
-
-  listen<P extends keyof this>(prop: P, handler: (value: this[P]) => void) {
-    if (this.listeners[prop] == null)
-      this.listeners[prop] = []
-
-    this.listeners[prop].push(handler)
-  }
 
   dependOn(component: Component, ...props: (keyof this)[]) {
     for (const prop of props)
@@ -94,7 +79,7 @@ export class Settings {
   /**
    * Sets the accent color of the given element, given its depth.
    */
-  setElementAccent(element: HTMLElement, depth: number) {
+  setElementAccent(element: ElementCSSInlineStyle, depth: number) {
     const accent: string[10] = opencolor[Object.keys(opencolor)[3 + (depth % 12)]]
 
     if (this.darkMode) {
@@ -109,26 +94,5 @@ export class Settings {
   }
 }
 
-const notifySettings = (settings: Settings) => new Proxy(settings, {
-  set: (settings, key, value) => {
-    if (key == 'listeners') {
-      // @ts-ignore
-      settings['listeners'] = value
-      return true
-    }
-
-    if (typeof key != 'string' || key == 'all' || settings[key] === undefined)
-      return false
-
-    if (settings[key] != value)
-      settings[key] = value
-
-    // @ts-ignore
-    settings.notifyPropertyChanged(key, value)
-
-    return true
-  }
-})
-
-export const settings = notifySettings(Settings.load())
+export const settings = notifyOnPropertyChange(Settings.load())
 export const appSettings = settings

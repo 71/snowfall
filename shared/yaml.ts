@@ -1,4 +1,4 @@
-import { Node, Store, BaseNode, NodeObserver, StoreObserver } from '.'
+import { Node, Store, BaseNode, NodeObserver, StoreObserver, NodeObservers } from '.'
 import yaml from 'yaml'
 
 
@@ -88,7 +88,7 @@ export abstract class YamlFileOrChildNode {
  */
 export class YamlFileNode extends YamlFileOrChildNode {
   public kind: 'file' = 'file'
-  public isDirty: boolean = true
+  public isDirty: boolean = false
 
   constructor(
     public filename: string,
@@ -121,7 +121,7 @@ export class YamlChildNode extends YamlFileOrChildNode {
 
 export class IncludedFile {
   public kind: 'included' = 'included'
-  public isDirty: boolean = true
+  public isDirty: boolean = false
   public nextContents: string
 
   constructor(
@@ -179,10 +179,10 @@ export class YamlStore implements Store<YamlStoreState> {
 
   constructor(
     public fs       : FileSystem,
-    public observers: NodeObserver<any>[],
+    public observers: NodeObservers<any>,
     public throttleMs = Infinity
   ) {
-    observers.push(this)
+    observers['yamlStore'] = this
   }
 
 
@@ -193,11 +193,11 @@ export class YamlStore implements Store<YamlStoreState> {
     this.files.length = 0
     this.root = await BaseNode.createRoot<YamlStoreState>(this.observers, ids)
 
-    for (const observer of this.observers) {
-      const obs = observer as any as StoreObserver<any>
+    for (const observerKey in this.observers) {
+      const observer = this.observers[observerKey] as any as StoreObserver<any>
 
-      if (typeof obs.loading == 'function')
-        await obs.loading()
+      if (typeof observer.loading == 'function')
+        await observer.loading()
     }
 
     const content  = await this.fs.read(filename)
@@ -331,11 +331,11 @@ export class YamlStore implements Store<YamlStoreState> {
 
     await visit(this.root, root, items.toJSON(), items)
 
-    for (const observer of this.observers) {
-      const obs = observer as any as StoreObserver<any>
+    for (const observerKey in this.observers) {
+      const observer = this.observers[observerKey] as any as StoreObserver<any>
 
-      if (typeof obs.loaded == 'function')
-        await obs.loaded()
+      if (typeof observer.loaded == 'function')
+        await observer.loaded()
     }
 
     return errors
@@ -347,11 +347,11 @@ export class YamlStore implements Store<YamlStoreState> {
 
     this.saveTimeout = null
 
-    for (const observer of this.observers) {
-      const obs = observer as any as StoreObserver<any>
+    for (const observerKey in this.observers) {
+      const observer = this.observers[observerKey] as any as StoreObserver<any>
 
-      if (typeof obs.saving == 'function')
-        await obs.saving()
+      if (typeof observer.saving == 'function')
+        await observer.saving()
     }
 
     for (const file of this.files) {
@@ -368,11 +368,11 @@ export class YamlStore implements Store<YamlStoreState> {
       file.isDirty = false
     }
 
-    for (const observer of this.observers) {
-      const obs = observer as any as StoreObserver<any>
+    for (const observerKey in this.observers) {
+      const observer = this.observers[observerKey] as any as StoreObserver<any>
 
-      if (typeof obs.saved == 'function')
-        await obs.saved()
+      if (typeof observer.saved == 'function')
+        await observer.saved()
     }
   }
 

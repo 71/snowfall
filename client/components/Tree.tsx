@@ -214,7 +214,7 @@ export class Tree implements NodeObserver<HtmlNodeState> {
   public activeNode: Node<HtmlNodeState>
 
   public rootElement = document.createElement('div')
-  public rootNodeChanged: (Node<HtmlNodeState>) => void = null
+  public rootNodeChanged: (node: Node<HtmlNodeState>) => void = null
 
   constructor() {
     this.cm = createCodeMirror(this)
@@ -291,6 +291,15 @@ export class Tree implements NodeObserver<HtmlNodeState> {
 
     if (!parent)
       return
+
+    if (node.isCompleted && settings.hideCompleted) {
+      node.wrapperElement.remove()
+
+      if (node.parent.children.length == 0)
+        node.parent.wrapperElement.classList.add('no-children')
+
+      return
+    }
 
     const index = node.index
     const nextSibling = parent.childrenElement.childNodes[index]
@@ -382,7 +391,13 @@ export class Tree implements NodeObserver<HtmlNodeState> {
       previouslySelected = null
     })
 
-    node.bulletElement.addEventListener('click'     , () => openMenu(this, node))
+    node.bulletElement.addEventListener('mouseup', e => {
+      if (e.button == 1)
+        node.remove()
+      else
+        openMenu(this, node)
+    })
+
     node.bulletElement.addEventListener('mouseenter', () => node.wrapperElement.classList.add('active'))
     node.bulletElement.addEventListener('mouseleave', () => node.wrapperElement.classList.remove('active'))
 
@@ -556,7 +571,7 @@ export class Tree implements NodeObserver<HtmlNodeState> {
 }
 
 export default class TreeComponent extends Component<{ tree: Tree }> {
-  private addElement: HTMLSvgElement = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+  private addElement: SVGSVGElement = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
 
   shouldComponentUpdate() {
     return false

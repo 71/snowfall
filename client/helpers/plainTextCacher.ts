@@ -3,7 +3,7 @@ import MarkdownIt  from 'markdown-it'
 import { Node, NodeObserver } from '../../shared'
 
 
-export default class PlainTextCacher<T> implements NodeObserver<T & { plainText: string }> {
+export class PlainTextCacher<T> implements NodeObserver<T & { plainText: string }> {
   public readonly md = new MarkdownIt()
 
   private getPlainText(node: Node<{}>): string {
@@ -30,3 +30,5 @@ export default class PlainTextCacher<T> implements NodeObserver<T & { plainText:
   removed() {}
   moved() {}
 }
+
+export const key = 'plainTextCacher'

@@ -8,6 +8,7 @@ import TextField from 'preact-material-components/TextField'
 import TopAppBar from 'preact-material-components/TopAppBar'
 
 import { settings }              from '../common/settings'
+import { HistoryManager }        from '../helpers/historyManager'
 import { DefaultObserver, Node } from '../../shared'
 import { YamlStore, YamlStoreState, FileSystem } from '../../shared/yaml'
 import { HtmlNodeState }         from './tree'
@@ -22,6 +23,8 @@ export class HeaderComponentState {
   canUndo: boolean
   canRedo: boolean
 
+  historyManager: HistoryManager<{}>
+
   files: string[]
 }
 
@@ -29,7 +32,7 @@ const stringIncludes = settings.useFuzzySearch
                      ? require('fuzzysearch')
                      : (needle: string, haystack: string) => haystack.includes(needle)
 
-export default class HeaderComponent extends Component<{ store: YamlStore, fs: FileSystem }, HeaderComponentState> {
+export class HeaderComponent extends Component<{ store: YamlStore, fs: FileSystem }, HeaderComponentState> {
   private loaded = false
 
   private observer = new DefaultObserver({
@@ -90,10 +93,19 @@ export default class HeaderComponent extends Component<{ store: YamlStore, fs: F
   }
 
   componentWillMount() {
-    if (!this.props.store.observers.includes(this.observer))
-      this.props.store.observers.push(this.observer)
+    if (this.props.store.observers[key] == null)
+      this.props.store.observers[key] = this.observer
 
     this.props.fs.getFiles().then(files => this.setState({ files }))
+
+    const historyManager: HistoryManager<{}> = this.props.store.observers[HistoryManager.key]
+
+    if (historyManager != null) {
+      historyManager.listen('canUndo', canUndo => this.setState({ canUndo }), true)
+      historyManager.listen('canRedo', canRedo => this.setState({ canRedo }), true)
+    }
+
+    this.setState({ historyManager })
   }
 
   createFile(filename: string) {
@@ -108,17 +120,9 @@ export default class HeaderComponent extends Component<{ store: YamlStore, fs: F
     this.props.store.save()
   }
 
-  undo() {
-
-  }
-
-  redo() {
-
-  }
-
   render({ store }: { store: YamlStore }) {
-    if (!store.observers.includes(this.observer))
-      store.observers.push(this.observer)
+    if (store.observers[key] == null)
+      store.observers[key] = this.observer
 
     const disabled = (disabled: boolean, classes: string) => {
       return disabled ? 'disabled ' + classes : classes
@@ -161,9 +165,9 @@ export default class HeaderComponent extends Component<{ store: YamlStore, fs: F
             <div style='width: 1em'></div>
 
             <button class={disabled(!this.state.canUndo, 'material-icons mdc-top-app-bar__action-item desktop')}
-                    label='Undo' onClick={() => this.undo()}>undo</button>
+                    label='Undo' onClick={() => this.state.historyManager.undo()}>undo</button>
             <button class={disabled(!this.state.canRedo, 'material-icons mdc-top-app-bar__action-item desktop')}
-                    label='Redo' onClick={() => this.redo()}>redo</button>
+                    label='Redo' onClick={() => this.state.historyManager.redo()}>redo</button>
 
             <div style='width: 1em' class='desktop'></div>
 
@@ -184,9 +188,9 @@ export default class HeaderComponent extends Component<{ store: YamlStore, fs: F
             <Menu.Anchor>
               <Menu ref={x => menu = x}>
                 <Menu.Item disabled={!inHomeRoute || !this.state.canUndo}
-                           onClick={() => this.undo()}>Undo</Menu.Item>
+                           onClick={() => this.state.historyManager.undo()}>Undo</Menu.Item>
                 <Menu.Item disabled={!inHomeRoute || !this.state.canRedo}
-                           onClick={() => this.redo()}>Redo</Menu.Item>
+                           onClick={() => this.state.historyManager.redo()}>Redo</Menu.Item>
 
                 <li class="mdc-list-divider" role="separator"></li>
 
@@ -245,3 +249,5 @@ export default class HeaderComponent extends Component<{ store: YamlStore, fs: F
     )
   }
 }
+
+export const key = 'headerComponent'

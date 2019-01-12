@@ -10,7 +10,7 @@ export class BaseNode<T> {
   public readonly children: Node<T>[] = []
 
   private constructor(
-    public readonly observers: NodeObserver<any>[],
+    public readonly observers: NodeObservers<T>,
 
     text: string,
     data: object = {}
@@ -24,7 +24,7 @@ export class BaseNode<T> {
    *
    * The list is not copied, so new observers can later be added or removed.
    */
-  static createRoot<T>(observers: NodeObserver<any>[], ids: { [id: string]: Node<T> } = {}) {
+  static createRoot<T>(observers: NodeObservers<T>, ids: { [id: string]: Node<T> } = {}) {
     const root = new BaseNode<T>(observers, null, {}) as any as Node<T>
     root._ids = ids
     return root
@@ -72,13 +72,6 @@ export class BaseNode<T> {
   }
 
   /**
-   * Gets the metadata with the given key.
-   */
-  get(key: string): any {
-    return key == 'text' ? this._text : this._data != null ? this._data[key] : undefined
-  }
-
-  /**
    * Returns the depth of the node in its tree.
    */
   get depth() {
@@ -101,12 +94,35 @@ export class BaseNode<T> {
     return this.get('id')
   }
 
+  /**
+   * Gets or sets whether the node is completed, that is:
+   * - its 'completed' property is `true`, or
+   * - its text is surrounded by '~~'.
+   */
+  get isCompleted(): boolean {
+    return this.get('completed') === true || this._text.startsWith('~~') && this._text.endsWith('~~')
+  }
+
+  set isCompleted(value: boolean) {
+    if (this._data != null)
+      this.updateProperty('completed', value)
+    else if (value)
+      this.updateProperty('text', `~~${this._text}~~`)
+  }
+
   get index() {
     return this.siblings.indexOf(this as any as Node<T>)
   }
 
   get isRoot() {
     return this._parent == null
+  }
+
+  /**
+   * Gets the metadata with the given key.
+   */
+  get(key: string): any {
+    return key == 'text' ? this._text : this._data != null ? this._data[key] : undefined
   }
 
   indexOf(node: Node<T>): number {
@@ -217,7 +233,7 @@ export class BaseNode<T> {
   }
 
   protected notify(f: (store: NodeObserver<T>) => Promise<void> | void) {
-    return Promise.all(this.observers.map(f))
+    return Promise.all(Object.values(this.observers).map(f))
   }
 
   /**
@@ -372,13 +388,13 @@ export class BaseNode<T> {
 /**
  * A node with additional `T` data.
  */
-export type Node<T = void> = T & BaseNode<T>
+export type Node<T = {}> = T & BaseNode<T>
 
 
 /**
  * Defines a structure that can watch a `Node`.
  */
-export interface NodeObserver<T = any> {
+export interface NodeObserver<T = {}> {
   /**
    * Initializes and inserts a new node as a child of the given parent.
    */
@@ -402,12 +418,16 @@ export interface NodeObserver<T = any> {
   propertyUpdated(node: Node<T>, propertyKey: string, newValue: any, oldValue: any): Promise<void> | void
 }
 
-export interface StoreObserver<T = any> extends NodeObserver<T> {
-  loading(): Promise<void> | void
-  loaded(): Promise<void> | void
+export type NodeObservers<T = {}> = object & {
+  [key: number]: NodeObserver<T>
+}
 
-  saving(): Promise<void> | void
-  saved(): Promise<void> | void
+export interface StoreObserver<T = any> extends NodeObserver<T> {
+  loading?(): Promise<void> | void
+  loaded ?(): Promise<void> | void
+
+  saving ?(): Promise<void> | void
+  saved  ?(): Promise<void> | void
 }
 
 export class DefaultObserver<T = any> implements StoreObserver<T> {
@@ -473,7 +493,7 @@ export interface Store<T> extends NodeObserver<T> {
   /**
    * Gets the observers of nodes of this store.
    */
-  readonly observers: NodeObserver<T>[]
+  readonly observers: NodeObservers<T>
 
   /**
    * Gets the root node.

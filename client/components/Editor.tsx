@@ -52,7 +52,7 @@ export const createEditorObserver = (store: YamlStore) => new DefaultObserver({
   }
 })
 
-export default class EditorComponent extends Component<{ store: YamlStore }, { changed: boolean }> {
+export class EditorComponent extends Component<{ store: YamlStore }, { changed: boolean }> {
   shouldComponentUpdate() {
     return false
   }
@@ -100,3 +100,5 @@ export default class EditorComponent extends Component<{ store: YamlStore }, { c
     return <div class='editor-root' />
   }
 }
+
+export const key = 'editor'
